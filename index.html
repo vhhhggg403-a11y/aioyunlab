@@ -219,7 +219,24 @@
     const ADMIN_PASSWORD = "kP9$vX!2mZ#qL8";
 
     let games = JSON.parse(localStorage.getItem('aioyunlab_games')) || [];
+// Yılan oyununu listeye otomatik ve kalıcı olarak enjekte et
+if (typeof games !== 'undefined' && !games.some(g => g.id === "neon-snake-fixed")) {
+    games.unshift({
+        id: "neon-snake-fixed",
+        title: "Neon Snake Pro",
+        name: "Neon Snake Pro",
+        desc: "Bölüm 4 Güncellemesi! Tek oyunculu klasik mod, bota karşı arena savaşı ve yerel 2 kişilik moduyla neon efektli harika bir yılan oyunu.",
+        description: "Bölüm 4 Güncellemesi! Tek oyunculu klasik mod, bota karşı arena savaşı ve yerel 2 kişilik moduyla neon efektli harika bir yılan oyunu.",
+        url: "yılan3.html",
+        link: "yılan3.html",
+        category: "Klasik / Aksiyon",
+        icon: "fa-solid fa-snake",
+        image: "https://images.unsplash.com/photo-1628157582853-a796fa650a6a?w=500"
+    });
+}
 
+// İlk yükleme
+renderGames();
     function renderGames() {
       const grid = document.getElementById('games-grid');
       grid.innerHTML = '';
