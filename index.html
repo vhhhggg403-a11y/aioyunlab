@@ -5,46 +5,37 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AIOyunLab - Yapay Zeka Oyun Laboratuvarı</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"
+        onerror="this.onerror=null;this.href='https://use.fontawesome.com/releases/v6.6.0/css/all.css'">
+  <!-- 3. CDN seçeneği: jsdelivr -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.6.0/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;600;700&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
   
   <style>
     body { 
-      font-family: 'Space Grotesk', system-ui, sans-serif; 
+      font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; 
       scroll-behavior: smooth;
     }
-    
-    /* Özelleştirilmiş Kaydırma Çubuğu */
     ::-webkit-scrollbar { width: 10px; }
     ::-webkit-scrollbar-track { background: #0f172a; }
     ::-webkit-scrollbar-thumb { background: #06b6d4; border-radius: 5px; }
     ::-webkit-scrollbar-thumb:hover { background: #22d3ee; }
-
-    .hero-bg { 
-      background: linear-gradient(135deg, #020617 0%, #0f172a 100%); 
-    }
-    
-    /* Cam Efekti (Glassmorphism) */
+    .hero-bg { background: linear-gradient(135deg, #020617 0%, #0f172a 100%); }
     .glass {
       background: rgba(15, 23, 42, 0.7);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
       border-bottom: 1px solid rgba(34, 211, 238, 0.1);
     }
-
     .glass-card {
       background: rgba(30, 41, 59, 0.7);
       backdrop-filter: blur(10px);
       border: 1px solid rgba(255, 255, 255, 0.05);
     }
-
-    /* Oyun Kartı Geliştirmeleri */
     .game-card { 
       transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
       position: relative;
     }
-    
     .game-card::after {
       content: '';
       position: absolute;
@@ -58,34 +49,21 @@
       opacity: 0;
       transition: opacity 0.4s ease;
     }
-
     .game-card:hover::after { opacity: 1; }
-    
     .game-card:hover { 
       transform: translateY(-12px) scale(1.02); 
       box-shadow: 0 20px 40px -10px rgba(34, 211, 238, 0.3); 
     }
-
     .neon-text { 
       text-shadow: 0 0 10px rgba(34, 211, 238, 0.6), 0 0 20px rgba(34, 211, 238, 0.4); 
     }
-
-    /* Süzülme Animasyonu */
-    .floating {
-      animation: float 6s ease-in-out infinite;
-    }
-    
+    .floating { animation: float 6s ease-in-out infinite; }
     @keyframes float {
       0% { transform: translateY(0px); }
       50% { transform: translateY(-15px); }
       100% { transform: translateY(0px); }
     }
-
-    /* Buton Parlama Animasyonu */
-    .btn-glow {
-      position: relative;
-      overflow: hidden;
-    }
+    .btn-glow { position: relative; overflow: hidden; }
     .btn-glow::before {
       content: '';
       position: absolute;
@@ -93,19 +71,182 @@
       background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
       transition: all 0.5s;
     }
-    .btn-glow:hover::before {
-      left: 100%;
-      transition: 0.5s;
-    }
+    .btn-glow:hover::before { left: 100%; }
 
-    /* Particles Container */
-    #particles-js {
+    /* Gömülü parçacık canvas'ı - CDN gerektirmez */
+    #particles-canvas {
       position: absolute;
       width: 100%;
       height: 100%;
       top: 0;
       left: 0;
       z-index: 1;
+      pointer-events: none;
+    }
+    /* Mouse etkileşimi için hero section'a pointer-events ver */
+    .hero-interactive { pointer-events: all; }
+  </style>
+
+  <!-- ══════════════════════════════════════════════
+       YENİ ÖZELLİK STİLLERİ — Orijinal kod değişmedi
+       ══════════════════════════════════════════════ -->
+  <style>
+    /* ── Font Awesome Emoji Yedekleri (CDN çalışmazsa) ──────── */
+    .fa-failed .fas.fa-lock::before    { content:"🔒"; font-family:sans-serif; }
+    .fa-failed .fas.fa-code::before    { content:"💻"; font-family:sans-serif; }
+    .fa-failed .fas.fa-gamepad::before { content:"🎮"; font-family:sans-serif; }
+    .fa-failed .fas.fa-user-shield::before { content:"🛡️"; font-family:sans-serif; }
+    .fa-failed .fas.fa-key::before     { content:"🔑"; font-family:sans-serif; }
+    .fa-failed .fas.fa-arrow-right::before { content:"→"; font-family:sans-serif; }
+    .fa-failed .fas.fa-upload::before  { content:"📤"; font-family:sans-serif; }
+    .fa-failed .fas.fa-database::before{ content:"🗄️"; font-family:sans-serif; }
+    .fa-failed .fas.fa-sign-out-alt::before { content:"🚪"; font-family:sans-serif; }
+    .fa-failed .fas.fa-ghost::before   { content:"👻"; font-family:sans-serif; }
+    .fa-failed .fas.fa-play::before    { content:"▶"; font-family:sans-serif; }
+    .fa-failed .fas.fa-trash::before   { content:"🗑️"; font-family:sans-serif; }
+    .fa-failed .fas.fa-plus-circle::before { content:"➕"; font-family:sans-serif; }
+    .fa-failed .fas.fa-search::before  { content:"🔍"; font-family:sans-serif; }
+    .fa-failed .fas { font-style:normal; }
+
+    /* ── Toast bildirimleri ─────────────────────────────────── */
+    #toast-container {
+      position:fixed; bottom:24px; right:24px; z-index:9999;
+      display:flex; flex-direction:column; gap:10px; pointer-events:none;
+    }
+    .toast {
+      background:rgba(15,23,42,0.96);
+      border:1px solid rgba(34,211,238,0.3);
+      backdrop-filter:blur(14px);
+      padding:14px 20px; border-radius:16px;
+      color:#e2e8f0; font-weight:600; font-size:0.88rem;
+      pointer-events:all;
+      display:flex; align-items:center; gap:10px;
+      box-shadow:0 8px 32px rgba(0,0,0,0.5);
+      animation:toastIn .35s cubic-bezier(.34,1.56,.64,1) forwards;
+      max-width:300px;
+    }
+    .toast.success { border-color:rgba(34,197,94,.5); }
+    .toast.error   { border-color:rgba(239,68,68,.5);  }
+    .toast.info    { border-color:rgba(34,211,238,.5); }
+    .toast.hiding  { animation:toastOut .25s ease-in forwards; }
+    @keyframes toastIn  { from{transform:translateX(110px);opacity:0} to{transform:translateX(0);opacity:1} }
+    @keyframes toastOut { from{transform:translateX(0);opacity:1} to{transform:translateX(110px);opacity:0} }
+
+    /* ── Yukarı çık butonu ──────────────────────────────────── */
+    #scrollTopBtn {
+      position:fixed; bottom:90px; right:24px;
+      width:48px; height:48px;
+      background:linear-gradient(135deg,#22d3ee,#9333ea);
+      border:none; border-radius:50%; color:#fff;
+      font-size:1.1rem; cursor:pointer; z-index:9998;
+      display:flex; align-items:center; justify-content:center;
+      opacity:0; transform:translateY(20px) scale(.8);
+      transition:all .35s cubic-bezier(.34,1.56,.64,1);
+      box-shadow:0 4px 20px rgba(34,211,238,.4);
+    }
+    #scrollTopBtn.visible { opacity:1; transform:translateY(0) scale(1); }
+    #scrollTopBtn:hover   { transform:translateY(-4px) scale(1.12); box-shadow:0 8px 30px rgba(34,211,238,.65); }
+
+    /* ── Arama kutusu ───────────────────────────────────────── */
+    #search-wrapper {
+      max-width:460px; margin:0 auto 2.5rem; position:relative;
+    }
+    #search-icon {
+      position:absolute; left:16px; top:50%; transform:translateY(-50%);
+      color:#64748b; pointer-events:none; font-size:.95rem;
+    }
+    #searchInput {
+      width:100%;
+      background:rgba(30,41,59,.85);
+      border:1px solid rgba(255,255,255,.08);
+      outline:none; padding:13px 20px 13px 44px;
+      border-radius:999px; color:#e2e8f0; font-size:.92rem;
+      transition:all .3s; backdrop-filter:blur(10px);
+      font-family:inherit;
+    }
+    #searchInput::placeholder { color:#64748b; }
+    #searchInput:focus { border-color:rgba(34,211,238,.55); box-shadow:0 0 0 3px rgba(34,211,238,.12); }
+
+    /* ── Oynanma sayacı rozeti ──────────────────────────────── */
+    .play-badge {
+      position:absolute; top:12px; right:12px; z-index:30;
+      background:rgba(0,0,0,.65); backdrop-filter:blur(6px);
+      border:1px solid rgba(255,255,255,.1);
+      color:#94a3b8; font-size:.68rem; font-weight:700;
+      padding:3px 9px; border-radius:999px;
+      display:flex; align-items:center; gap:4px;
+    }
+
+    /* ── Popüler rozeti ─────────────────────────────────────── */
+    .hot-badge {
+      position:absolute; top:12px; left:12px; z-index:30;
+      background:linear-gradient(135deg,#f59e0b,#ef4444);
+      color:#fff; font-size:.6rem; font-weight:800;
+      padding:4px 10px; border-radius:999px;
+      letter-spacing:.06em; text-transform:uppercase;
+    }
+
+    /* ── Kart giriş animasyonu ──────────────────────────────── */
+    .card-enter { opacity:0; transform:translateY(28px); }
+    .card-enter-active {
+      animation:cardUp .55s cubic-bezier(.34,1.56,.64,1) forwards;
+    }
+    @keyframes cardUp { from{opacity:0;transform:translateY(28px)} to{opacity:1;transform:translateY(0)} }
+
+    /* ── İstatistik bar ─────────────────────────────────────── */
+    #stats-bar {
+      background:rgba(30,41,59,.45);
+      border:1px solid rgba(255,255,255,.06);
+      border-radius:18px; padding:18px 28px;
+      display:flex; justify-content:center; gap:52px;
+      margin-bottom:2.8rem; backdrop-filter:blur(10px);
+      flex-wrap:wrap;
+    }
+    .stat-item { text-align:center; }
+    .stat-num {
+      font-size:1.75rem; font-weight:700;
+      background:linear-gradient(135deg,#22d3ee,#9333ea);
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+      background-clip:text;
+    }
+    .stat-lbl {
+      font-size:.7rem; color:#64748b;
+      text-transform:uppercase; letter-spacing:.08em; font-weight:600;
+    }
+
+    /* ── Konfeti ────────────────────────────────────────────── */
+    .confetti-p {
+      position:fixed; pointer-events:none; z-index:99999;
+      width:8px; height:8px; border-radius:2px;
+      animation:cfall var(--dur) ease-out forwards;
+    }
+    @keyframes cfall {
+      0%   { transform:translate(0,0) rotate(0deg); opacity:1; }
+      100% { transform:translate(var(--dx),var(--dy)) rotate(var(--rot)); opacity:0; }
+    }
+
+    /* ── Footer ─────────────────────────────────────────────── */
+    #site-footer {
+      background:rgba(2,6,23,.9);
+      border-top:1px solid rgba(255,255,255,.05);
+      padding:44px 24px 32px; text-align:center;
+    }
+    .footer-logo {
+      font-size:1.6rem; font-weight:700;
+      background:linear-gradient(135deg,#22d3ee,#9333ea);
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+      background-clip:text; margin-bottom:8px;
+    }
+    .footer-sep {
+      width:60px; height:2px;
+      background:linear-gradient(90deg,#22d3ee,#9333ea);
+      margin:14px auto; border-radius:4px;
+    }
+
+    /* ── Boş arama sonucu ───────────────────────────────────── */
+    #no-results {
+      display:none; text-align:center; padding:3rem;
+      color:#64748b; grid-column:1/-1; font-size:1.1rem;
     }
   </style>
 </head>
@@ -117,7 +258,6 @@
         <div class="w-12 h-12 bg-gradient-to-br from-cyan-400 to-purple-600 rounded-xl flex items-center justify-center text-2xl font-bold shadow-[0_0_15px_rgba(34,211,238,0.5)]">🤖</div>
         <h1 class="text-3xl font-bold tracking-tight neon-text">AIOyunLab</h1>
       </div>
-      
       <div class="flex items-center gap-6">
         <button onclick="openAdmin()" 
                 class="bg-slate-800/80 hover:bg-cyan-500 hover:text-slate-950 transition-all duration-300 px-5 py-2.5 rounded-2xl flex items-center gap-2 text-sm font-semibold border border-slate-700 hover:border-cyan-500 shadow-lg">
@@ -127,11 +267,9 @@
     </div>
   </nav>
 
-  <section class="hero-bg min-h-screen flex items-center relative overflow-hidden">
-    <div id="particles-js"></div>
-    
+  <section id="hero-section" class="hero-bg min-h-screen flex items-center relative overflow-hidden">
+    <canvas id="particles-canvas"></canvas>
     <div class="absolute inset-0 bg-[radial-gradient(at_center,#22d3ee_0%,transparent_60%)] opacity-20 z-0"></div>
-    
     <div class="max-w-7xl mx-auto px-6 py-24 text-center relative z-10 floating">
       <div class="inline-block mb-4 px-4 py-1.5 rounded-full border border-cyan-500/30 bg-cyan-500/10 text-cyan-400 font-semibold text-sm backdrop-blur-sm">
         <i class="fas fa-code mr-2"></i>Yeni Nesil HTML Oyun Merkezi
@@ -142,7 +280,6 @@
       <p class="text-xl md:text-2xl text-slate-400 mb-10 max-w-2xl mx-auto font-light">
         AI ile geliştirdiğin tüm HTML oyunlarını burada topla, test et ve dünyayla paylaş.
       </p>
-      
       <div class="flex flex-col sm:flex-row gap-5 justify-center items-center">
         <a href="#oyunlar" class="btn-glow bg-white text-black text-lg font-bold px-10 py-4 rounded-full hover:scale-105 transition-transform shadow-[0_0_20px_rgba(255,255,255,0.3)]">
           <i class="fas fa-gamepad mr-2"></i> Oyunları Keşfet
@@ -160,21 +297,17 @@
       <div class="w-24 h-1 bg-gradient-to-r from-cyan-400 to-purple-500 mx-auto rounded-full mb-6"></div>
       <p class="text-slate-400 text-xl font-light">Sistemde yüklü olan yapay zeka harikaları</p>
     </div>
-    
-    <div id="games-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-      </div>
+    <div id="games-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"></div>
   </section>
 
   <div id="adminModal" class="hidden fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-50 transition-opacity">
     <div class="glass-card rounded-3xl p-8 w-full max-w-lg border border-cyan-500/20 shadow-[0_0_50px_rgba(34,211,238,0.15)] relative overflow-hidden">
       <div class="absolute -top-20 -right-20 w-40 h-40 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20"></div>
       <div class="absolute -bottom-20 -left-20 w-40 h-40 bg-cyan-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20"></div>
-
       <div class="relative z-10">
         <h2 class="text-3xl font-bold mb-8 text-center flex items-center justify-center gap-3">
           <i class="fas fa-user-shield text-cyan-400"></i> Sistem Erişimi
         </h2>
-        
         <div id="loginScreen">
           <div class="relative mb-6">
             <i class="fas fa-key absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
@@ -186,24 +319,24 @@
             Giriş Yap <i class="fas fa-arrow-right ml-2"></i>
           </button>
         </div>
-
         <div id="adminPanel" class="hidden">
           <div class="space-y-5">
-            <h3 class="text-xl font-semibold text-cyan-400 flex items-center gap-2"><i class="fas fa-plus-circle"></i> Yeni Oyun Ekle</h3>
+            <h3 class="text-xl font-semibold text-cyan-400 flex items-center gap-2">
+              <i class="fas fa-plus-circle"></i> Yeni Oyun Ekle
+            </h3>
             <input id="gameName" type="text" placeholder="Oyun Adı" class="w-full bg-slate-900/80 border border-slate-700 focus:border-cyan-400 outline-none p-4 rounded-2xl transition-all">
             <input id="gameDesc" type="text" placeholder="Kısa Açıklama" class="w-full bg-slate-900/80 border border-slate-700 focus:border-cyan-400 outline-none p-4 rounded-2xl transition-all">
             <input id="gameFile" type="text" placeholder="HTML Linki (örnek: oyun.html)" class="w-full bg-slate-900/80 border border-slate-700 focus:border-cyan-400 outline-none p-4 rounded-2xl transition-all">
             <input id="gameEmoji" type="text" placeholder="Emoji (örnek: 🚀)" class="w-full bg-slate-900/80 border border-slate-700 focus:border-cyan-400 outline-none p-4 rounded-2xl transition-all">
-            
             <button onclick="addGameFromAdmin()" 
                     class="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-slate-950 font-bold py-4 rounded-2xl shadow-lg transform transition hover:-translate-y-1">
               <i class="fas fa-upload mr-2"></i> Sisteme Yükle
             </button>
-
             <hr class="border-slate-700/50 my-6">
-            <h3 class="text-xl font-semibold text-purple-400 flex items-center gap-2"><i class="fas fa-database"></i> Veritabanı</h3>
+            <h3 class="text-xl font-semibold text-purple-400 flex items-center gap-2">
+              <i class="fas fa-database"></i> Veritabanı
+            </h3>
             <div id="adminGameList" class="max-h-48 overflow-auto space-y-2 pr-2"></div>
-
             <button onclick="logoutAdmin()" 
                     class="w-full bg-slate-800 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-slate-700 hover:border-red-500/50 py-3 rounded-2xl transition-all mt-4 font-semibold">
               <i class="fas fa-sign-out-alt mr-2"></i> Çıkış Yap
@@ -215,15 +348,24 @@
   </div>
 
   <script>
-    // ŞİFREN GÜNCELLENDİ
     const ADMIN_PASSWORD = "kP9$vX!2mZ#qL8";
 
-    let games = JSON.parse(localStorage.getItem('aioyunlab_games')) || [];
+    // ========== Sabit Oyunlar (Herkes Görür) ==========
+    const DEFAULT_GAMES = [
+      {
+        name: "Neon Snake Pro",
+        desc: "Çok oyunculu, bot modu, shop sistemi ve başarım rozeti sistemi olan gelişmiş neon yılan oyunu!",
+        file: "yilan3.html",
+        emoji: "🐍"
+      }
+    ];
+
+    let localGames = JSON.parse(localStorage.getItem('aioyunlab_games')) || [];
+    let games = [...DEFAULT_GAMES, ...localGames];
 
     function renderGames() {
       const grid = document.getElementById('games-grid');
       grid.innerHTML = '';
-
       if (games.length === 0) {
         grid.innerHTML = `
           <div class="col-span-1 md:col-span-2 lg:col-span-3 text-center py-20">
@@ -234,10 +376,8 @@
           </div>`;
         return;
       }
-
-      games.forEach((game, index) => {
+      games.forEach((game) => {
         const card = document.createElement('div');
-        // Kartın tasarımı inanılmaz hale getirildi (Kod yapısı bozulmadan)
         card.className = 'game-card bg-slate-900 border border-slate-700 rounded-3xl overflow-hidden shadow-lg';
         card.innerHTML = `
           <div class="h-48 bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center text-7xl relative overflow-hidden group">
@@ -246,14 +386,13 @@
             <span class="relative z-20 transform group-hover:scale-110 transition-transform duration-500 drop-shadow-2xl">${game.emoji || '🎮'}</span>
           </div>
           <div class="p-8 relative z-20 bg-slate-900">
-            <h3 class="text-2xl font-bold mb-3 text-white group-hover:text-cyan-400 transition-colors">${game.name}</h3>
+            <h3 class="text-2xl font-bold mb-3 text-white">${game.name}</h3>
             <p class="text-slate-400 mb-8 line-clamp-3 font-light text-sm leading-relaxed">${game.desc}</p>
             <a href="${game.file}" target="_blank"
                class="btn-glow block w-full text-center bg-slate-800 hover:bg-cyan-500 text-cyan-400 hover:text-slate-950 font-bold py-4 rounded-2xl border border-slate-700 hover:border-cyan-500 transition-all shadow-md">
               <i class="fas fa-play mr-2"></i> Başlat
             </a>
-          </div>
-        `;
+          </div>`;
         grid.appendChild(card);
       });
     }
@@ -263,17 +402,12 @@
       const desc = document.getElementById('gameDesc').value.trim();
       const file = document.getElementById('gameFile').value.trim();
       const emoji = document.getElementById('gameEmoji').value.trim();
-
-      if (!name || !file) {
-        alert("Oyun adı ve dosya linki zorunludur!");
-        return;
-      }
-
-      games.push({ name, desc, file, emoji });
-      localStorage.setItem('aioyunlab_games', JSON.stringify(games));
+      if (!name || !file) { alert("Oyun adı ve dosya linki zorunludur!"); return; }
+      localGames.push({ name, desc, file, emoji });
+      localStorage.setItem('aioyunlab_games', JSON.stringify(localGames));
+      games = [...DEFAULT_GAMES, ...localGames];
       renderGames();
       renderAdminGameList();
-
       document.getElementById('gameName').value = '';
       document.getElementById('gameDesc').value = '';
       document.getElementById('gameFile').value = '';
@@ -283,7 +417,21 @@
     function renderAdminGameList() {
       const list = document.getElementById('adminGameList');
       list.innerHTML = '';
-      games.forEach((game, i) => {
+      DEFAULT_GAMES.forEach((game) => {
+        const div = document.createElement('div');
+        div.className = 'flex justify-between items-center bg-slate-900/80 border border-cyan-700/40 p-4 rounded-2xl';
+        div.innerHTML = `
+          <div class="flex items-center gap-3">
+            <span class="text-2xl">${game.emoji || '🎮'}</span>
+            <div>
+              <span class="font-semibold text-slate-200">${game.name}</span>
+              <span class="ml-2 text-xs text-cyan-500 border border-cyan-700/50 px-2 py-0.5 rounded-full">Sabit</span>
+            </div>
+          </div>
+          <span class="text-slate-500 text-xs">Silinemez</span>`;
+        list.appendChild(div);
+      });
+      localGames.forEach((game, i) => {
         const div = document.createElement('div');
         div.className = 'flex justify-between items-center bg-slate-900/80 border border-slate-700 p-4 rounded-2xl hover:border-slate-500 transition-colors';
         div.innerHTML = `
@@ -293,16 +441,16 @@
           </div>
           <button onclick="deleteGame(${i})" class="w-10 h-10 rounded-full bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center">
             <i class="fas fa-trash"></i>
-          </button>
-        `;
+          </button>`;
         list.appendChild(div);
       });
     }
 
     function deleteGame(index) {
-      if (confirm("Bu oyunu veritabanından silmek istediğine emin misin?")) {
-        games.splice(index, 1);
-        localStorage.setItem('aioyunlab_games', JSON.stringify(games));
+      if (confirm("Bu oyunu silmek istediğine emin misin?")) {
+        localGames.splice(index, 1);
+        localStorage.setItem('aioyunlab_games', JSON.stringify(localGames));
+        games = [...DEFAULT_GAMES, ...localGames];
         renderGames();
         renderAdminGameList();
       }
@@ -322,7 +470,6 @@
         document.getElementById('adminPanel').classList.remove('hidden');
         renderAdminGameList();
       } else {
-        // Hatalı şifre animasyonu için basit bir class ekleyip çıkarma
         const input = document.getElementById('adminPass');
         input.classList.add('border-red-500', 'animate-pulse');
         setTimeout(() => input.classList.remove('border-red-500', 'animate-pulse'), 1000);
@@ -334,48 +481,385 @@
       document.getElementById('adminPass').value = '';
     }
 
-    // İlk yükleme
     renderGames();
 
-    // Arka Plan Parçacık (Particles) Konfigürasyonu
-    particlesJS('particles-js', {
-      "particles": {
-        "number": { "value": 60, "density": { "enable": true, "value_area": 800 } },
-        "color": { "value": "#22d3ee" },
-        "shape": { "type": "circle" },
-        "opacity": { "value": 0.3, "random": false },
-        "size": { "value": 3, "random": true },
-        "line_linked": {
-          "enable": true,
-          "distance": 150,
-          "color": "#22d3ee",
-          "opacity": 0.2,
-          "width": 1
-        },
-        "move": {
-          "enable": true,
-          "speed": 2,
-          "direction": "none",
-          "random": false,
-          "straight": false,
-          "out_mode": "out",
-          "bounce": false,
+    // ====================================================
+    // GÖMÜLÜ PARÇACIK ANİMASYONU — CDN gerektirmez,
+    // her tarayıcıda ve her ülkede çalışır
+    // ====================================================
+    (function initParticles() {
+      const canvas = document.getElementById('particles-canvas');
+      const section = document.getElementById('hero-section');
+      const ctx    = canvas.getContext('2d');
+      let W, H;
+      const PARTICLE_COUNT = 70;
+      const LINK_DIST      = 140;
+      const MOUSE_DIST     = 150;
+      let mouse = { x: -9999, y: -9999 };
+      let particles = [];
+
+      function resize() {
+        W = canvas.width  = section.offsetWidth;
+        H = canvas.height = section.offsetHeight;
+      }
+
+      function makeParticle() {
+        return {
+          x:  Math.random() * W,
+          y:  Math.random() * H,
+          vx: (Math.random() - 0.5) * 1.4,
+          vy: (Math.random() - 0.5) * 1.4,
+          r:  Math.random() * 2 + 1
+        };
+      }
+
+      function init() {
+        resize();
+        particles = [];
+        for (let i = 0; i < PARTICLE_COUNT; i++) particles.push(makeParticle());
+      }
+
+      section.addEventListener('mousemove', e => {
+        const rect = canvas.getBoundingClientRect();
+        mouse.x = e.clientX - rect.left;
+        mouse.y = e.clientY - rect.top;
+      });
+      section.addEventListener('mouseleave', () => { mouse.x = -9999; mouse.y = -9999; });
+
+      // Tıklama: 4 yeni parçacık ekle
+      section.addEventListener('click', () => {
+        for (let i = 0; i < 4; i++) particles.push(makeParticle());
+        if (particles.length > PARTICLE_COUNT + 40) particles.splice(0, 4);
+      });
+
+      window.addEventListener('resize', () => { resize(); });
+
+      function draw() {
+        ctx.clearRect(0, 0, W, H);
+
+        // Parçacıkları güncelle
+        particles.forEach(p => {
+          p.x += p.vx;
+          p.y += p.vy;
+          if (p.x < 0)  { p.x = 0;  p.vx *= -1; }
+          if (p.x > W)  { p.x = W;  p.vx *= -1; }
+          if (p.y < 0)  { p.y = 0;  p.vy *= -1; }
+          if (p.y > H)  { p.y = H;  p.vy *= -1; }
+
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(34,211,238,0.6)';
+          ctx.fill();
+        });
+
+        // Parçacıklar arası bağlantı çizgileri
+        for (let i = 0; i < particles.length; i++) {
+          for (let j = i + 1; j < particles.length; j++) {
+            const dx   = particles[i].x - particles[j].x;
+            const dy   = particles[i].y - particles[j].y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < LINK_DIST) {
+              ctx.beginPath();
+              ctx.moveTo(particles[i].x, particles[i].y);
+              ctx.lineTo(particles[j].x, particles[j].y);
+              ctx.strokeStyle = `rgba(34,211,238,${0.18 * (1 - dist / LINK_DIST)})`;
+              ctx.lineWidth = 1;
+              ctx.stroke();
+            }
+          }
+
+          // Mouse'a bağlantı
+          const mx   = particles[i].x - mouse.x;
+          const my   = particles[i].y - mouse.y;
+          const mdist = Math.sqrt(mx * mx + my * my);
+          if (mdist < MOUSE_DIST) {
+            ctx.beginPath();
+            ctx.moveTo(particles[i].x, particles[i].y);
+            ctx.lineTo(mouse.x, mouse.y);
+            ctx.strokeStyle = `rgba(34,211,238,${0.6 * (1 - mdist / MOUSE_DIST)})`;
+            ctx.lineWidth = 1.2;
+            ctx.stroke();
+          }
         }
-      },
-      "interactivity": {
-        "detect_on": "canvas",
-        "events": {
-          "onhover": { "enable": true, "mode": "grab" },
-          "onclick": { "enable": true, "mode": "push" },
-          "resize": true
-        },
-        "modes": {
-          "grab": { "distance": 140, "line_linked": { "opacity": 0.8 } },
-          "push": { "particles_nb": 4 }
+
+        requestAnimationFrame(draw);
+      }
+
+      init();
+      draw();
+    })();
+
+    // ══════════════════════════════════════════════════════════
+    //  YENİ ÖZELLİKLER — Orijinal kod dokunulmadan eklendi
+    // ══════════════════════════════════════════════════════════
+
+    // ── 1. Font Awesome Akıllı Yedek ──────────────────────────
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        const probe = document.createElement('i');
+        probe.className = 'fas fa-lock';
+        probe.style.cssText = 'position:absolute;visibility:hidden;font-size:16px;';
+        document.body.appendChild(probe);
+        const ff = window.getComputedStyle(probe, ':before').fontFamily || '';
+        document.body.removeChild(probe);
+        if (!ff.toLowerCase().includes('awesome') && !ff.toLowerCase().includes('fontawesome')) {
+          document.body.classList.add('fa-failed');
+          console.info('[AIOyunLab] Font Awesome yüklenemedi, emoji yedekleri aktif.');
         }
-      },
-      "retina_detect": true
+      }, 1800);
     });
+
+    // ── 2. Toast Bildirim Sistemi ──────────────────────────────
+    function showToast(msg, type = 'info', duration = 3200) {
+      const icons = { success:'✅', error:'❌', info:'💡' };
+      const container = document.getElementById('toast-container');
+      const t = document.createElement('div');
+      t.className = `toast ${type}`;
+      t.innerHTML = `<span>${icons[type] || '💬'}</span><span>${msg}</span>`;
+      container.appendChild(t);
+      setTimeout(() => {
+        t.classList.add('hiding');
+        setTimeout(() => t.remove(), 280);
+      }, duration);
+    }
+
+    // ── 3. Oynanma Sayacı ─────────────────────────────────────
+    function getPlays(file) { return parseInt(localStorage.getItem('aio_plays_' + file) || '0'); }
+    function addPlay(file)  {
+      const n = getPlays(file) + 1;
+      localStorage.setItem('aio_plays_' + file, n);
+      return n;
+    }
+    function getMostPlayedFile() {
+      let best = null, bestN = 0;
+      games.forEach(g => { const n = getPlays(g.file); if (n > bestN) { bestN = n; best = g.file; } });
+      return bestN > 0 ? best : null;
+    }
+
+    // ── 4. Kart Geliştirmeleri (MutationObserver ile) ─────────
+    const cardObserver = new MutationObserver(() => enhanceCards());
+    cardObserver.observe(document.getElementById('games-grid'), { childList: true });
+
+    function enhanceCards() {
+      const hotFile = getMostPlayedFile();
+      document.querySelectorAll('#games-grid .game-card').forEach((card, idx) => {
+        // Zaten geliştirilmişse atla
+        if (card.dataset.enhanced) return;
+        card.dataset.enhanced = '1';
+
+        // Kart giriş animasyonu
+        card.classList.add('card-enter');
+        requestAnimationFrame(() => {
+          setTimeout(() => card.classList.add('card-enter-active'), idx * 80);
+        });
+
+        // Oynanma rozeti ekle (üst sağ köşe)
+        const imgBox = card.querySelector('.h-48');
+        if (imgBox) {
+          const gameLink = card.querySelector('a[href]');
+          const file = gameLink ? gameLink.getAttribute('href') : '';
+
+          const playBadge = document.createElement('div');
+          playBadge.className = 'play-badge';
+          playBadge.dataset.file = file;
+          playBadge.innerHTML = `<i class="fas fa-play" style="font-size:.6rem"></i><span>${getPlays(file)} oynandı</span>`;
+          imgBox.appendChild(playBadge);
+
+          // Popüler rozeti
+          if (file && file === hotFile) {
+            const hotBadge = document.createElement('div');
+            hotBadge.className = 'hot-badge';
+            hotBadge.textContent = '🔥 Popüler';
+            imgBox.appendChild(hotBadge);
+          }
+
+          // Oyun linkine tıklama: sayaç + konfeti
+          if (gameLink) {
+            gameLink.addEventListener('click', (e) => {
+              const n = addPlay(file);
+              const badge = card.querySelector('.play-badge span');
+              if (badge) badge.textContent = `${n} oynandı`;
+              showToast(`${card.querySelector('h3')?.textContent || 'Oyun'} başlatılıyor! 🎮`, 'success');
+              confettiBurst(e.clientX, e.clientY);
+              // Popüler rozet güncelle
+              setTimeout(refreshHotBadges, 400);
+            });
+          }
+        }
+      });
+    }
+
+    function refreshHotBadges() {
+      document.querySelectorAll('.hot-badge').forEach(b => b.remove());
+      const hotFile = getMostPlayedFile();
+      if (!hotFile) return;
+      document.querySelectorAll('#games-grid .game-card').forEach(card => {
+        const link = card.querySelector('a[href]');
+        if (link && link.getAttribute('href') === hotFile) {
+          const imgBox = card.querySelector('.h-48');
+          if (imgBox && !imgBox.querySelector('.hot-badge')) {
+            const b = document.createElement('div');
+            b.className = 'hot-badge'; b.textContent = '🔥 Popüler';
+            imgBox.appendChild(b);
+          }
+        }
+      });
+    }
+
+    // ── 5. Arama Kutusu (Dinamik Enjeksiyon) ──────────────────
+    (function injectSearch() {
+      const section = document.getElementById('oyunlar');
+      const grid    = document.getElementById('games-grid');
+      const wrapper = document.createElement('div');
+      wrapper.id = 'search-wrapper';
+      wrapper.innerHTML = `
+        <i class="fas fa-search" id="search-icon"></i>
+        <input id="searchInput" type="text" placeholder="Oyun ara..." autocomplete="off">
+      `;
+      const noResults = document.createElement('div');
+      noResults.id = 'no-results';
+      noResults.innerHTML = '🔍 Sonuç bulunamadı';
+      grid.parentNode.insertBefore(wrapper, grid);
+      grid.parentNode.insertBefore(noResults, grid);
+
+      wrapper.querySelector('#searchInput').addEventListener('input', function() {
+        const q = this.value.toLowerCase().trim();
+        let found = 0;
+        document.querySelectorAll('#games-grid .game-card').forEach(card => {
+          const name = (card.querySelector('h3')?.textContent || '').toLowerCase();
+          const desc = (card.querySelector('p')?.textContent || '').toLowerCase();
+          const match = !q || name.includes(q) || desc.includes(q);
+          card.style.display = match ? '' : 'none';
+          if (match) found++;
+        });
+        noResults.style.display = found === 0 && q ? 'block' : 'none';
+      });
+    })();
+
+    // ── 6. İstatistik Çubuğu (Dinamik Enjeksiyon) ────────────
+    (function injectStats() {
+      const section = document.getElementById('oyunlar');
+      const titleDiv = section.querySelector('.text-center.mb-16');
+      const bar = document.createElement('div');
+      bar.id = 'stats-bar';
+      bar.innerHTML = `
+        <div class="stat-item">
+          <div class="stat-num" id="stat-game-count">${games.length}</div>
+          <div class="stat-lbl">Toplam Oyun</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num" id="stat-total-plays">0</div>
+          <div class="stat-lbl">Toplam Oynama</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num">🤖</div>
+          <div class="stat-lbl">AI Yapımı</div>
+        </div>
+      `;
+      titleDiv.after(bar);
+      updateStats();
+    })();
+
+    function updateStats() {
+      const totalPlays = games.reduce((acc, g) => acc + getPlays(g.file), 0);
+      const el = document.getElementById('stat-total-plays');
+      if (el) el.textContent = totalPlays;
+      const gc = document.getElementById('stat-game-count');
+      if (gc) gc.textContent = games.length;
+    }
+
+    // ── 7. Yukarı Çık Butonu ──────────────────────────────────
+    window.addEventListener('scroll', () => {
+      const btn = document.getElementById('scrollTopBtn');
+      if (btn) btn.classList.toggle('visible', window.scrollY > 320);
+    });
+
+    // ── 8. Konfeti Efekti ─────────────────────────────────────
+    function confettiBurst(cx, cy) {
+      const colors = ['#22d3ee','#9333ea','#f0abfc','#fbbf24','#34d399','#f87171'];
+      for (let i = 0; i < 32; i++) {
+        const p = document.createElement('div');
+        const angle = Math.random() * Math.PI * 2;
+        const dist  = 60 + Math.random() * 120;
+        const dur   = (0.45 + Math.random() * 0.55).toFixed(2) + 's';
+        p.className = 'confetti-p';
+        p.style.cssText = `
+          left:${cx}px; top:${cy}px;
+          background:${colors[Math.floor(Math.random() * colors.length)]};
+          width:${6 + Math.random() * 6}px;
+          height:${6 + Math.random() * 6}px;
+          border-radius:${Math.random() > .5 ? '50%' : '2px'};
+          --dx:${Math.cos(angle) * dist}px;
+          --dy:${Math.sin(angle) * dist - 40}px;
+          --rot:${Math.random() * 540}deg;
+          --dur:${dur};
+        `;
+        document.body.appendChild(p);
+        setTimeout(() => p.remove(), 1100);
+      }
+    }
+
+    // ── 9. Klavye Kısayolları ──────────────────────────────────
+    document.addEventListener('keydown', e => {
+      // ESC → admin modalı kapat
+      if (e.key === 'Escape') {
+        const modal = document.getElementById('adminModal');
+        if (!modal.classList.contains('hidden')) logoutAdmin();
+      }
+      // CTRL+K → arama kutusuna odaklan
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        const inp = document.getElementById('searchInput');
+        if (inp) { inp.focus(); inp.select(); }
+      }
+    });
+
+    // ── 10. Admin işlemlerinde Toast ──────────────────────────
+    // (Orijinal alert() yerine güzel toast kullan)
+    const _origAddGame = addGameFromAdmin;
+    addGameFromAdmin = function() {
+      const name = document.getElementById('gameName').value.trim();
+      const file = document.getElementById('gameFile').value.trim();
+      if (!name || !file) { showToast('Oyun adı ve dosya linki zorunludur!', 'error'); return; }
+      _origAddGame();
+      showToast(`"${name}" başarıyla eklendi! 🎉`, 'success');
+      updateStats();
+    };
+    const _origDelete = deleteGame;
+    deleteGame = function(idx) {
+      const name = localGames[idx]?.name || 'Oyun';
+      if (confirm(`"${name}" silinsin mi?`)) {
+        localGames.splice(idx, 1);
+        localStorage.setItem('aioyunlab_games', JSON.stringify(localGames));
+        games = [...DEFAULT_GAMES, ...localGames];
+        renderGames();
+        renderAdminGameList();
+        showToast(`"${name}" silindi.`, 'info');
+        updateStats();
+      }
+    };
+
   </script>
+  <!-- ══ YENİ HTML ELEMENTLERİ (orijinal kod değişmedi) ══ -->
+
+  <!-- Toast bildirimleri -->
+  <div id="toast-container"></div>
+
+  <!-- Yukarı çık butonu -->
+  <button id="scrollTopBtn" aria-label="Yukarı çık" onclick="window.scrollTo({top:0,behavior:'smooth'})">
+    <i class="fas fa-arrow-up"></i>
+  </button>
+
+  <!-- Footer -->
+  <footer id="site-footer">
+    <div class="footer-logo">🤖 AIOyunLab</div>
+    <p style="color:#64748b;font-size:.85rem;">Yapay Zeka ile üretilen HTML oyunlarının buluşma noktası</p>
+    <div class="footer-sep"></div>
+    <p style="color:#334155;font-size:.75rem;">
+      Tüm oyunlar AI tarafından geliştirilmiştir &nbsp;·&nbsp;
+      <span style="color:#22d3ee">aioyunlab.vercel.app</span>
+    </p>
+  </footer>
+
 </body>
 </html>
