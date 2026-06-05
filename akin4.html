@@ -1,0 +1,1355 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AkiZeka - Premium Yapay Zeka Tahmin Motoru v4</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        /* --- MEVCUT CSS (Değiştirilmedi, Korundu) --- */
+        :root {
+            --bg-gradient: linear-gradient(135deg, #090e17, #131f33, #1c324d);
+            --card-bg: rgba(255, 255, 255, 0.03);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --card-shadow: 0 30px 60px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            --text-main: #ffffff;
+            --text-muted: #8ba1b7;
+            --btn-bg: rgba(255, 255, 255, 0.05);
+            --btn-hover: rgba(255, 255, 255, 0.15);
+            --accent: #00f2fe;
+            --accent-hover: #4facfe;
+            --danger: #ff4b2b;
+            --success: #00b09b;
+            --progress-bg: rgba(255, 255, 255, 0.1);
+            --modal-bg: rgba(9, 14, 23, 0.95);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background: var(--bg-gradient);
+            background-attachment: fixed;
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow-x: hidden;
+            flex-direction: column;
+        }
+
+        .top-stats-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--card-border);
+            z-index: 100;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .stat-badge {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--card-border);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            transition: all 0.3s;
+        }
+
+        .stat-badge.interactive {
+            cursor: pointer;
+            background: linear-gradient(45deg, var(--accent), var(--accent-hover));
+            color: #000;
+            border: none;
+        }
+        .stat-badge.interactive:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 242, 254, 0.4);
+        }
+
+        #global-loading {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #090e17;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 9999;
+            transition: opacity 0.8s ease, visibility 0.8s ease;
+        }
+        .ai-core {
+            width: 80px; height: 80px;
+            border-radius: 50%;
+            background: conic-gradient(from 0deg, transparent 0%, var(--accent) 100%);
+            animation: pulse-spin 2s linear infinite;
+            position: relative;
+            box-shadow: 0 0 40px var(--accent-hover);
+        }
+        .ai-core::after {
+            content: '';
+            position: absolute;
+            top: 10px; left: 10px; right: 10px; bottom: 10px;
+            background: #090e17;
+            border-radius: 50%;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 550px;
+            padding: 20px;
+            position: relative;
+            z-index: 10;
+            margin-top: 60px;
+            margin-bottom: 40px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--card-border);
+            border-radius: 28px;
+            padding: 45px 35px;
+            text-align: center;
+            box-shadow: var(--card-shadow);
+            display: none;
+            opacity: 0;
+            transform: translateY(20px) scale(0.95);
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .card.active {
+            display: block;
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            animation: float 6s ease-in-out infinite;
+        }
+
+        h1, h2 {
+            font-weight: 800;
+            margin-bottom: 12px;
+            background: -webkit-linear-gradient(45deg, var(--accent), var(--accent-hover));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        h1 { font-size: 2.2rem; }
+        h2 { font-size: 1.6rem; margin-bottom: 25px; }
+        
+        p.subtitle {
+            color: var(--text-muted);
+            font-size: 1rem;
+            margin-bottom: 35px;
+            line-height: 1.6;
+        }
+
+        .question-text {
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin: 25px 0 35px 0;
+            min-height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        }
+
+        .certainty-container {
+            margin-bottom: 30px;
+            text-align: left;
+        }
+        .certainty-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        .progress-bg {
+            width: 100%;
+            height: 8px;
+            background: var(--progress-bg);
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), var(--accent-hover));
+            width: 0%;
+            border-radius: 10px;
+            transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 0 10px var(--accent);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 18px;
+            margin-bottom: 15px;
+            background: var(--btn-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            color: var(--text-main);
+            font-size: 1.05rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            transition: left 0.5s;
+        }
+        .btn:hover::before { left: 100%; }
+
+        .btn:hover {
+            background: var(--btn-hover);
+            transform: translateY(-3px);
+            box-shadow: 0 15px 25px rgba(0,0,0,0.3);
+            border-color: rgba(255,255,255,0.2);
+        }
+
+        .btn-primary { background: linear-gradient(45deg, var(--accent), var(--accent-hover)); color: #000; border: none; font-weight: 800;}
+        .btn-primary:hover { box-shadow: 0 15px 30px rgba(0, 242, 254, 0.3); }
+        .btn-success { background: linear-gradient(45deg, #00b09b, #96c93d); color: #fff; border: none; }
+        .btn-danger { background: linear-gradient(45deg, #ff416c, #ff4b2b); color: #fff; border: none; }
+        .btn-outline { background: transparent; border: 1px solid var(--accent); color: var(--accent); }
+        .btn-outline:hover { background: rgba(0, 242, 254, 0.1); }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 18px;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            color: white;
+            font-size: 1.05rem;
+            margin-bottom: 25px;
+            outline: none;
+            transition: all 0.3s;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--accent);
+            background: rgba(0,0,0,0.5);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.5), 0 0 15px rgba(0, 242, 254, 0.2);
+        }
+
+        .brain-spinner {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 30px;
+            height: 100px;
+        }
+        .node {
+            width: 15px; height: 15px;
+            background: var(--accent);
+            border-radius: 50%;
+            animation: node-bounce 1.5s infinite ease-in-out both;
+            box-shadow: 0 0 15px var(--accent);
+        }
+        .node:nth-child(1) { animation-delay: -0.32s; }
+        .node:nth-child(2) { animation-delay: -0.16s; }
+
+        .alt-guesses {
+            margin-top: 25px;
+            padding-top: 25px;
+            border-top: 1px solid var(--card-border);
+            text-align: left;
+            display: none;
+        }
+        .alt-guesses h3 {
+            font-size: 0.95rem;
+            color: var(--text-main);
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+        .alt-badge-btn {
+            display: block;
+            width: 100%;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 12px 15px;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            margin-bottom: 8px;
+            color: #e2e8f0;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: space-between;
+        }
+        .alt-badge-btn:hover {
+            background: rgba(0, 242, 254, 0.1);
+            border-color: var(--accent);
+            color: white;
+            transform: translateX(5px);
+        }
+        .alt-badge-prob { color: var(--accent); font-weight: 800; }
+
+        #history-modal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--modal-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        #history-modal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .history-content {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            padding: 30px;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+        }
+        .history-close {
+            position: absolute;
+            top: 20px; right: 20px;
+            background: none; border: none;
+            color: var(--text-muted); font-size: 1.5rem;
+            cursor: pointer; transition: 0.3s;
+        }
+        .history-close:hover { color: var(--danger); }
+        .history-item {
+            padding: 15px;
+            border-bottom: 1px solid var(--card-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .history-item:last-child { border-bottom: none; }
+        .history-name { font-weight: 600; color: white; }
+        .history-status { font-size: 0.8rem; padding: 4px 8px; border-radius: 12px; }
+        .status-win { background: rgba(0, 176, 155, 0.2); color: #00b09b; }
+        .status-loss { background: rgba(255, 75, 43, 0.2); color: #ff4b2b; }
+
+        @keyframes pulse-spin { 100% { transform: rotate(360deg); } }
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+            100% { transform: translateY(0px); }
+        }
+        @keyframes node-bounce {
+            0%, 80%, 100% { transform: scale(0); opacity: 0.3; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+
+        .reset-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.5);
+            padding: 8px 15px;
+            border-radius: 20px;
+            border: 1px solid var(--card-border);
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: 0.3s;
+            z-index: 100;
+        }
+        .reset-btn:hover { background: var(--danger); color: white; border-color: var(--danger); }
+
+        @media (max-width: 480px) {
+            .top-stats-bar { padding: 10px; justify-content: center; }
+            .container { margin-top: 90px; }
+            .card { padding: 35px 25px; border-radius: 20px; }
+            h1 { font-size: 1.8rem; }
+            .question-text { font-size: 1.2rem; }
+            .btn { padding: 15px; font-size: 1rem; }
+        }
+
+        /* --- YENİ EKLENEN PROFESYONEL CSS SİSTEMLERİ --- */
+        
+        /* AI Avatar Sistemi */
+        .ai-avatar-container {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 20px auto;
+            position: relative;
+        }
+        .ai-avatar {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+            box-shadow: 0 0 30px rgba(0, 242, 254, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2.5rem;
+            animation: avatar-pulse 3s infinite alternate;
+        }
+        @keyframes avatar-pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 20px rgba(0, 242, 254, 0.4); }
+            100% { transform: scale(1.05); box-shadow: 0 0 50px rgba(0, 242, 254, 0.8); }
+        }
+
+        /* Veri Tabanı Durum Çubuğu */
+        .system-status-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(0,0,0,0.8);
+            border-top: 1px solid var(--card-border);
+            padding: 8px 20px;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            display: flex;
+            justify-content: space-between;
+            z-index: 99;
+            backdrop-filter: blur(5px);
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            margin-right: 5px;
+            animation: blink 2s infinite;
+        }
+        @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+
+        /* Kategori Tagları */
+        .category-tags {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 15px;
+        }
+        .cat-tag {
+            background: rgba(255,255,255,0.1);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            color: var(--accent);
+            border: 1px solid rgba(0, 242, 254, 0.3);
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="top-stats-bar">
+        <div class="stat-badge">🧠 Zeka Seviyesi: <span id="stat-level" style="color:var(--accent);">1</span></div>
+        <div class="stat-badge">🏆 Yapay Zeka: <span id="stat-ai-wins" style="color:var(--success);">0</span></div>
+        <div class="stat-badge">🎯 Kullanıcı: <span id="stat-player-wins" style="color:var(--danger);">0</span></div>
+        <div class="stat-badge interactive" onclick="toggleHistory()">📜 Geçmiş</div>
+    </div>
+
+    <div class="system-status-bar">
+        <span><span class="status-indicator"></span> Veritabanı: v4 Premium | Modüller Aktif</span>
+        <span id="db-size-indicator">Hafıza: Hesaplanıyor...</span>
+    </div>
+
+    <div id="global-loading">
+        <div class="ai-core"></div>
+        <h2 style="margin-top: 30px; font-size: 1.2rem; color: var(--accent);">Nöral Ağlar & Devasa Veritabanı Başlatılıyor...</h2>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-top:10px;">Versiyon 4.0 | Kategori Doğrulama | Bayes Algoritması Kuruluyor</p>
+    </div>
+
+    <div class="container">
+        <div id="screen-intro" class="card">
+            <div class="ai-avatar-container">
+                <div class="ai-avatar">🤖</div>
+            </div>
+            <h1>AkiZeka Premium v4</h1>
+            <p class="subtitle">Artık çok daha zekiyim. Hayvanlar, ülkeler, tarihi şahsiyetler, sporcular, arabalar, gezegenler ve meslekler dahil <b>binlerce ihtimali</b> veri tabanımda tutuyorum. Aklından bir şey tut ve ne kadar güçlü olduğumu gör.</p>
+            <button class="btn btn-primary" onclick="startGame()">Sistemi Başlat</button>
+            <div class="category-tags">
+                <span class="cat-tag">Ülkeler</span><span class="cat-tag">Hayvanlar</span>
+                <span class="cat-tag">Filmler</span><span class="cat-tag">Tarih</span>
+                <span class="cat-tag">Oyunlar</span><span class="cat-tag">Arabalar</span>
+                <span class="cat-tag">Meslekler</span><span class="cat-tag">Yemekler</span>
+                <span class="cat-tag">Teknoloji</span><span class="cat-tag">Spor</span>
+            </div>
+        </div>
+
+        <div id="screen-question" class="card">
+            <div class="certainty-container">
+                <div class="certainty-header">
+                    <span id="question-count-text">Soru 1</span>
+                    <span id="certainty-text">Eminlik: %0</span>
+                </div>
+                <div class="progress-bg">
+                    <div class="progress-fill" id="certainty-bar"></div>
+                </div>
+            </div>
+            
+            <div class="question-text" id="question-text">Buraya soru gelecek?</div>
+            
+            <button class="btn" onclick="handleAnswer(1)">Evet</button>
+            <button class="btn" onclick="handleAnswer(-1)">Hayır</button>
+            <button class="btn" onclick="handleAnswer(0.5)">Belki / Kısmen</button>
+            <button class="btn" onclick="handleAnswer(0)">Bilmiyorum</button>
+        </div>
+
+        <div id="screen-thinking" class="card">
+            <div class="brain-spinner">
+                <div class="node"></div>
+                <div class="node"></div>
+                <div class="node"></div>
+            </div>
+            <h2 style="font-size: 1.3rem;">Kuantum İhtimaller Hesaplanıyor...</h2>
+            <p class="subtitle" style="font-size: 0.85rem;" id="thinking-sub">Geniş veri tabanı taranıyor</p>
+        </div>
+
+        <div id="screen-guess" class="card">
+            <h2>Derin Analiz Tamamlandı!</h2>
+            <p class="subtitle">Bütün veriler beni tek bir sonuca götürüyor:</p>
+            <div class="question-text" id="guess-text" style="color: var(--accent); font-size: 2.2rem; margin: 15px 0;">Tahmin</div>
+            <button class="btn btn-success" onclick="guessResult(true, false, null)">Evet, Doğru Bildin!</button>
+            <button class="btn btn-danger" onclick="guessResult(false, false, null)">Hayır, Yanlış</button>
+            
+            <div class="alt-guesses" id="alt-guesses-container">
+                <h3>Veri Ağı Alternatifleri (Bunlardan Biri Olabilir Mi?)</h3>
+                <div id="alt-guesses-list"></div>
+                <button class="btn btn-outline" style="margin-top:10px; padding: 12px; font-size: 0.9rem;" onclick="guessResult(false, false, null)">Hiçbiri Değil, Yeni Veri Ekle</button>
+            </div>
+        </div>
+
+        <div id="screen-win" class="card">
+            <div class="ai-avatar-container" style="width: 80px; height: 80px;">
+                <div class="ai-avatar" style="font-size: 2rem;">🏆</div>
+            </div>
+            <h1>Yine Haklı Çıktım!</h1>
+            <p class="subtitle">Veri bilimi ve Bayes algoritması asla yalan söylemez. Sistemin devasa doğruluğu bir kez daha kanıtlandı.</p>
+            <button class="btn btn-primary" onclick="showScreen('screen-intro')">Yeni Analiz Başlat</button>
+        </div>
+
+        <div id="screen-learn-name" class="card">
+            <h2>Bilinmeyen Veri Saptandı</h2>
+            <p class="subtitle">Benim devasa ağıma takılmadığına göre yeni bir şey olmalı. Aklından tuttuğun neydi?</p>
+            <input type="text" id="input-correct-name" placeholder="Örn: Mimar Sinan, Satürn, Makarna..." autocomplete="off">
+            <button class="btn btn-primary" onclick="submitLearnName()">Ağa Ekle</button>
+        </div>
+
+        <div id="screen-learn-question" class="card">
+            <h2>Makine Öğrenimi Aktif</h2>
+            <p class="subtitle" id="learn-question-subtitle"></p>
+            <input type="text" id="input-new-question" placeholder="Örn: Uzayda mı bulunur? Hamur işi mi?" autocomplete="off">
+            <button class="btn btn-primary" onclick="submitLearnQuestion()">Karakteristiği Çıkar</button>
+        </div>
+
+        <div id="screen-learn-answer" class="card">
+            <h2>Düğüm Bağlanıyor</h2>
+            <p class="subtitle">Sisteme eklenecek yeni filtre:</p>
+            <div class="question-text" id="learn-answer-text" style="font-size: 1.1rem; min-height: auto;"></div>
+            <p class="subtitle" style="margin-bottom:15px;">Peki <strong id="learn-target-name" style="color:var(--accent)"></strong> için bu sorunun cevabı nedir?</p>
+            <button class="btn btn-success" onclick="finishLearning(1)">Evet</button>
+            <button class="btn btn-danger" onclick="finishLearning(-1)">Hayır</button>
+        </div>
+
+    </div>
+
+    <div id="history-modal">
+        <div class="history-content">
+            <button class="history-close" onclick="toggleHistory()">×</button>
+            <h2 style="font-size: 1.4rem; margin-bottom: 20px;">AI Tahmin ve Öğrenme Geçmişi</h2>
+            <div id="history-list">
+                <p style="color: var(--text-muted); text-align: center;">Henüz geçmiş verisi yok.</p>
+            </div>
+        </div>
+    </div>
+
+    <button class="reset-btn" onclick="resetDatabase()" style="bottom: 40px;">Sistemi Sıfırla</button>
+
+    <script>
+        /* =========================================
+           KATMAN 1: DATABASE LAYER (DEVASA VERİ TABANI)
+           (Önceki kodlar bozulmadan üstüne devasa eklentiler yapıldı)
+           ========================================= */
+        const DB_KEY = 'akizeka_db_v3';
+        const DB_BACKUP_KEY = 'akizeka_db_v3_backup';
+        const DB_VERSION = 4; // Versiyon sistemi eklendi
+        
+        // Devasa Soru ve Karakter Havuzu
+        const defaultDb = {
+            version: DB_VERSION,
+            nextQId: 50,
+            stats: { totalPlayed: 0, aiWins: 0, playerWins: 0, aiLevel: 1 },
+            history: [],
+            learningHistory: [], // YENİ: Makinenin öğrendiklerini tutan ekstra log
+            questions: [
+                // Mevcut Sorular (Korundu)
+                {id: 1, text: "Gerçekte yaşayan veya yaşamış bir insan mı?"},
+                {id: 2, text: "Türkiye ile doğrudan bağlantısı var mı?"},
+                {id: 3, text: "Bir nesne veya cansız bir eşya mı?"},
+                {id: 4, text: "Kurgusal (film/dizi/oyun/kitap) bir karakter mi?"},
+                {id: 5, text: "Bir hayvan türü mü?"},
+                {id: 6, text: "Yenilebilir bir şey mi (Yemek/İçecek)?"},
+                {id: 7, text: "Sporla veya sporcularla bağlantılı mı?"},
+                {id: 8, text: "Teknolojik veya elektronik bir cihaz/ürün mü?"},
+                {id: 9, text: "Tekerlekleri var mı / Bir taşıt veya araba markası mı?"},
+                {id: 10, text: "Doğaüstü veya süper güçleri var mı?"},
+                {id: 11, text: "Şarkıcı, müzisyen veya bir müzik grubu mu?"},
+                {id: 12, text: "Video oyunları dünyasından mı?"},
+                {id: 13, text: "Bir kurum, organizasyon veya spor kulübü mü?"},
+                {id: 14, text: "Bir sinema filmi veya dizi karakteri mi?"},
+                {id: 15, text: "Uçma yeteneği veya özelliği var mı?"},
+                {id: 16, text: "İçeriğinde et bulunur mu veya etobur mu?"},
+                {id: 17, text: "Futbol ile doğrudan alakası var mı?"},
+                {id: 18, text: "Marvel veya DC çizgi roman evrenlerinden birine ait mi?"},
+                {id: 19, text: "Silah, kılıç veya benzeri aletler kullanır mı?"},
+                {id: 20, text: "Üzerinde bir ekran (görüntü veren panel) bulunur mu?"},
+                {id: 21, text: "Hamur işi veya unlu bir yapıya sahip mi?"},
+                
+                // YENİ EKLENEN PROFESYONEL SORULAR (Genişletilmiş Filtreleme)
+                {id: 22, text: "Bir ülke mi?"},
+                {id: 23, text: "Bir şehir veya yerleşim yeri mi?"},
+                {id: 24, text: "İnsanların yaptığı bir meslek veya iş mi?"},
+                {id: 25, text: "Bir doğa olayı veya hava durumu mu?"},
+                {id: 26, text: "Uzayda, gökyüzünde veya bir gezegen mi?"},
+                {id: 27, text: "Bir spor dalı veya branşı mı?"},
+                {id: 28, text: "Bir çizgi film veya animasyon karakteri mi?"},
+                {id: 29, text: "Tarihte yaşamış (şu an hayatta olmayan) önemli bir kişi mi?"},
+                {id: 30, text: "Avrupa kıtasında mı bulunur / Avrupalı mı?"},
+                {id: 31, text: "Asya kıtasında mı bulunur / Asyalı mı?"},
+                {id: 32, text: "Amerika kıtasında mı bulunur / Amerikalı mı?"},
+                {id: 33, text: "Denize veya okyanusa kıyısı/bağlantısı var mı?"},
+                {id: 34, text: "Ev içinde kullanılan bir alet veya beyaz eşya mı?"},
+                {id: 35, text: "Takım halinde oynanan bir oyun mu?"},
+                {id: 36, text: "Top ile oynanan bir spor mu?"},
+                {id: 37, text: "Cinsiyeti kadın mı?"},
+                {id: 38, text: "Memeli bir canlı mı?"},
+                {id: 39, text: "Evcil hayvan olarak evde beslenebilir mi?"},
+                {id: 40, text: "Genellikle su altında mı yaşar/bulunur?"},
+                {id: 41, text: "Motoru var mı veya yakıt/elektrik ile mi çalışır?"},
+                {id: 42, text: "Oscar veya Grammy gibi büyük bir ödül kazanmış mıdır?"},
+                {id: 43, text: "Sıvı halde midir (İçecek vb.)?"},
+                {id: 44, text: "Kırmızı renk yoğunlukta mıdır?"}
+            ],
+            characters: [
+                /* --- MEVCUT KARAKTERLER KORUNDU VE CEVAPLARI GÜNCELLENDİ --- */
+                {name: "Mustafa Kemal Atatürk", answers: {"1": 1, "2": 1, "3": -1, "4": -1, "5": -1, "6": -1, "7": -1, "11": -1, "13": -1, "29": 1, "37": -1}},
+                {name: "Bilgisayar", answers: {"1": -1, "3": 1, "4": -1, "6": -1, "8": 1, "20": 1, "34": 1, "41": 1}},
+                {name: "Spider-Man", answers: {"1": -1, "4": 1, "10": 1, "14": 1, "15": 0.5, "18": 1, "32": 1}},
+                {name: "Kedi", answers: {"1": -1, "3": -1, "5": 1, "6": -1, "15": -1, "16": 1, "38": 1, "39": 1, "40": -1}},
+                {name: "Cristiano Ronaldo", answers: {"1": 1, "2": -1, "7": 1, "17": 1, "11": -1, "30": 1, "37": -1}},
+                
+                /* --- DEVASA YENİ VERİ EKLENTİSİ (Her Kategoriden En Az 10 Tane) --- */
+                
+                // 1. Hayvanlar (+15)
+                {name: "Köpek", answers: {"1":-1,"3":-1,"5":1,"16":1,"38":1,"39":1,"40":-1}},
+                {name: "Aslan", answers: {"1":-1,"3":-1,"5":1,"16":1,"38":1,"39":-1,"40":-1}},
+                {name: "Fil", answers: {"1":-1,"3":-1,"5":1,"16":-1,"38":1,"39":-1,"40":-1}},
+                {name: "Kartal", answers: {"1":-1,"3":-1,"5":1,"15":1,"16":1,"38":-1,"39":-1,"40":-1}},
+                {name: "Yunus Balığı", answers: {"1":-1,"3":-1,"5":1,"15":-1,"16":1,"38":1,"39":-1,"40":1}},
+                {name: "Kaplan", answers: {"1":-1,"3":-1,"5":1,"16":1,"38":1,"39":-1,"40":-1}},
+                {name: "Zürafa", answers: {"1":-1,"3":-1,"5":1,"16":-1,"38":1,"39":-1,"40":-1}},
+                {name: "Yılan", answers: {"1":-1,"3":-1,"5":1,"16":1,"38":-1,"39":-1,"40":0.5}},
+                {name: "Timsah", answers: {"1":-1,"3":-1,"5":1,"16":1,"38":-1,"39":-1,"40":1}},
+                {name: "Ayı", answers: {"1":-1,"3":-1,"5":1,"16":1,"38":1,"39":-1,"40":-1}},
+                {name: "Kurt", answers: {"1":-1,"3":-1,"5":1,"16":1,"38":1,"39":-1,"40":-1}},
+                {name: "Penguen", answers: {"1":-1,"3":-1,"5":1,"15":-1,"16":1,"38":-1,"39":-1,"40":1}},
+                {name: "Balina", answers: {"1":-1,"3":-1,"5":1,"15":-1,"16":1,"38":1,"39":-1,"40":1}},
+                {name: "Kurbağa", answers: {"1":-1,"3":-1,"5":1,"16":1,"38":-1,"39":-1,"40":0.5}},
+                {name: "Kuş", answers: {"1":-1,"3":-1,"5":1,"15":1,"16":0.5,"38":-1,"39":1,"40":-1}},
+
+                // 2. Araba Markaları (+15)
+                {name: "BMW", answers: {"3":1,"8":1,"9":1,"30":1,"41":1}},
+                {name: "Mercedes-Benz", answers: {"3":1,"8":1,"9":1,"30":1,"41":1}},
+                {name: "Ferrari", answers: {"3":1,"7":1,"8":1,"9":1,"30":1,"41":1,"44":1}},
+                {name: "Toyota", answers: {"3":1,"8":1,"9":1,"31":1,"41":1}},
+                {name: "Porsche", answers: {"3":1,"7":1,"8":1,"9":1,"30":1,"41":1}},
+                {name: "Audi", answers: {"3":1,"8":1,"9":1,"30":1,"41":1}},
+                {name: "Volkswagen", answers: {"3":1,"8":1,"9":1,"30":1,"41":1}},
+                {name: "Ford", answers: {"3":1,"8":1,"9":1,"32":1,"41":1}},
+                {name: "Honda", answers: {"3":1,"8":1,"9":1,"31":1,"41":1}},
+                {name: "Hyundai", answers: {"3":1,"8":1,"9":1,"31":1,"41":1}},
+                {name: "Nissan", answers: {"3":1,"8":1,"9":1,"31":1,"41":1}},
+                {name: "Chevrolet", answers: {"3":1,"8":1,"9":1,"32":1,"41":1}},
+                {name: "Volvo", answers: {"3":1,"8":1,"9":1,"30":1,"41":1}},
+                {name: "Tesla", answers: {"3":1,"8":1,"9":1,"32":1,"41":1}},
+                {name: "Fiat", answers: {"3":1,"8":1,"9":1,"30":1,"41":1}},
+
+                // 3. Ülkeler (+10)
+                {name: "Türkiye", answers: {"1":-1,"2":1,"3":1,"22":1,"30":1,"31":1,"33":1}},
+                {name: "Almanya", answers: {"1":-1,"2":-1,"3":1,"22":1,"30":1,"33":1}},
+                {name: "Amerika Birleşik Devletleri", answers: {"1":-1,"2":-1,"3":1,"22":1,"32":1,"33":1}},
+                {name: "Japonya", answers: {"1":-1,"2":-1,"3":1,"22":1,"31":1,"33":1}},
+                {name: "Fransa", answers: {"1":-1,"2":-1,"3":1,"22":1,"30":1,"33":1}},
+                {name: "İtalya", answers: {"1":-1,"2":-1,"3":1,"22":1,"30":1,"33":1}},
+                {name: "İngiltere", answers: {"1":-1,"2":-1,"3":1,"22":1,"30":1,"33":1}},
+                {name: "Rusya", answers: {"1":-1,"2":-1,"3":1,"22":1,"30":1,"31":1,"33":1}},
+                {name: "Çin", answers: {"1":-1,"2":-1,"3":1,"22":1,"31":1,"33":1}},
+                {name: "Brezilya", answers: {"1":-1,"2":-1,"3":1,"22":1,"32":1,"33":1}},
+
+                // 4. Şehirler (+10)
+                {name: "İstanbul", answers: {"1":-1,"2":1,"3":1,"23":1,"30":1,"31":1,"33":1}},
+                {name: "Ankara", answers: {"1":-1,"2":1,"3":1,"23":1,"31":1,"33":-1}},
+                {name: "İzmir", answers: {"1":-1,"2":1,"3":1,"23":1,"31":1,"33":1}},
+                {name: "New York", answers: {"1":-1,"2":-1,"3":1,"23":1,"32":1,"33":1}},
+                {name: "Londra", answers: {"1":-1,"2":-1,"3":1,"23":1,"30":1,"33":-1}},
+                {name: "Paris", answers: {"1":-1,"2":-1,"3":1,"23":1,"30":1,"33":-1}},
+                {name: "Tokyo", answers: {"1":-1,"2":-1,"3":1,"23":1,"31":1,"33":1}},
+                {name: "Roma", answers: {"1":-1,"2":-1,"3":1,"23":1,"30":1,"33":-1}},
+                {name: "Berlin", answers: {"1":-1,"2":-1,"3":1,"23":1,"30":1,"33":-1}},
+                {name: "Moskova", answers: {"1":-1,"2":-1,"3":1,"23":1,"30":1,"33":-1}},
+
+                // 5. Yemekler (+15)
+                {name: "Pizza", answers: {"3":1,"6":1,"16":0.5,"21":1,"43":-1}},
+                {name: "Hamburger", answers: {"3":1,"6":1,"16":1,"21":1,"43":-1}},
+                {name: "Lahmacun", answers: {"2":1,"3":1,"6":1,"16":1,"21":1,"43":-1}},
+                {name: "Sushi", answers: {"3":1,"6":1,"16":1,"21":-1,"31":1,"43":-1}},
+                {name: "Döner", answers: {"2":1,"3":1,"6":1,"16":1,"21":-1,"43":-1}},
+                {name: "Kebap", answers: {"2":1,"3":1,"6":1,"16":1,"21":-1,"43":-1}},
+                {name: "Makarna", answers: {"3":1,"6":1,"16":-1,"21":1,"43":-1}},
+                {name: "Mantı", answers: {"2":1,"3":1,"6":1,"16":1,"21":1,"43":-1}},
+                {name: "Çorba", answers: {"3":1,"6":1,"16":0.5,"21":-1,"43":1}},
+                {name: "Salata", answers: {"3":1,"6":1,"16":-1,"21":-1,"43":-1}},
+                {name: "Köfte", answers: {"2":1,"3":1,"6":1,"16":1,"21":-1,"43":-1}},
+                {name: "Pide", answers: {"2":1,"3":1,"6":1,"16":1,"21":1,"43":-1}},
+                {name: "Baklava", answers: {"2":1,"3":1,"6":1,"16":-1,"21":1,"43":-1}},
+                {name: "Tost", answers: {"3":1,"6":1,"16":0.5,"21":1,"43":-1}},
+                {name: "Omlet", answers: {"3":1,"6":1,"16":-1,"21":-1,"43":-1}},
+
+                // 6. Futbolcular (+15)
+                {name: "Lionel Messi", answers: {"1":1,"7":1,"17":1,"32":-1,"37":-1}},
+                {name: "Kylian Mbappe", answers: {"1":1,"7":1,"17":1,"30":1,"37":-1}},
+                {name: "Arda Güler", answers: {"1":1,"2":1,"7":1,"17":1,"30":1,"37":-1}},
+                {name: "Erling Haaland", answers: {"1":1,"7":1,"17":1,"30":1,"37":-1}},
+                {name: "Neymar Jr", answers: {"1":1,"7":1,"17":1,"32":1,"37":-1}},
+                {name: "Cristiano Ronaldo", answers: {"1":1,"7":1,"17":1,"30":1,"37":-1}},
+                {name: "Pele", answers: {"1":1,"7":1,"17":1,"29":1,"32":1,"37":-1}},
+                {name: "Diego Maradona", answers: {"1":1,"7":1,"17":1,"29":1,"32":1,"37":-1}},
+                {name: "Zinedine Zidane", answers: {"1":1,"7":1,"17":1,"30":1,"37":-1}},
+                {name: "Ronaldinho", answers: {"1":1,"7":1,"17":1,"32":1,"37":-1}},
+                {name: "Zlatan Ibrahimovic", answers: {"1":1,"7":1,"17":1,"30":1,"37":-1}},
+                {name: "Mohamed Salah", answers: {"1":1,"7":1,"17":1,"37":-1}},
+                {name: "Kevin De Bruyne", answers: {"1":1,"7":1,"17":1,"30":1,"37":-1}},
+                {name: "Robert Lewandowski", answers: {"1":1,"7":1,"17":1,"30":1,"37":-1}},
+                {name: "Luka Modric", answers: {"1":1,"7":1,"17":1,"30":1,"37":-1}},
+
+                // 7. Süper Kahramanlar (+15)
+                {name: "Batman", answers: {"4":1,"10":-1,"14":1,"18":1,"19":1,"37":-1}},
+                {name: "Iron Man", answers: {"4":1,"8":1,"10":1,"14":1,"15":1,"18":1,"19":1,"37":-1}},
+                {name: "Superman", answers: {"4":1,"10":1,"14":1,"15":1,"18":1,"19":-1,"37":-1}},
+                {name: "Thor", answers: {"4":1,"10":1,"14":1,"15":1,"18":1,"19":1,"37":-1}},
+                {name: "Captain America", answers: {"4":1,"10":1,"14":1,"18":1,"19":1,"37":-1}},
+                {name: "Spider-Man", answers: {"4":1,"10":1,"14":1,"18":1,"37":-1}},
+                {name: "Hulk", answers: {"4":1,"10":1,"14":1,"18":1,"19":-1,"37":-1}},
+                {name: "Flash", answers: {"4":1,"10":1,"14":1,"18":1,"19":-1,"37":-1}},
+                {name: "Wonder Woman", answers: {"4":1,"10":1,"14":1,"18":1,"19":1,"37":1}},
+                {name: "Wolverine", answers: {"4":1,"10":1,"14":1,"18":1,"19":1,"37":-1}},
+                {name: "Deadpool", answers: {"4":1,"10":1,"14":1,"18":1,"19":1,"37":-1}},
+                {name: "Aquaman", answers: {"4":1,"10":1,"14":1,"18":1,"19":1,"40":1,"37":-1}},
+                {name: "Doctor Strange", answers: {"4":1,"10":1,"14":1,"18":1,"15":1,"37":-1}},
+                {name: "Black Panther", answers: {"4":1,"10":1,"14":1,"18":1,"37":-1}},
+                {name: "Ant-Man", answers: {"4":1,"10":1,"14":1,"18":1,"37":-1}},
+
+                // 8. Film Karakterleri (+10)
+                {name: "Darth Vader", answers: {"4":1,"10":1,"14":1,"19":1,"37":-1}},
+                {name: "Harry Potter", answers: {"4":1,"10":1,"14":1,"15":1,"19":1,"37":-1}},
+                {name: "James Bond", answers: {"4":1,"14":1,"19":1,"37":-1}},
+                {name: "Joker", answers: {"4":1,"14":1,"18":1,"19":1,"37":-1}},
+                {name: "Jack Sparrow", answers: {"4":1,"14":1,"19":1,"37":-1,"40":1}},
+                {name: "Luke Skywalker", answers: {"4":1,"10":1,"14":1,"19":1,"37":-1}},
+                {name: "Neo", answers: {"4":1,"10":1,"14":1,"19":1,"37":-1}},
+                {name: "John Wick", answers: {"4":1,"14":1,"19":1,"37":-1}},
+                {name: "Indiana Jones", answers: {"4":1,"14":1,"19":1,"37":-1}},
+                {name: "Rocky Balboa", answers: {"4":1,"7":1,"14":1,"19":-1,"37":-1}},
+
+                // 9. Ünlü Kişiler (+10)
+                {name: "Elon Musk", answers: {"1":1,"8":1,"32":1,"37":-1}},
+                {name: "Albert Einstein", answers: {"1":1,"29":1,"30":1,"37":-1}},
+                {name: "Barış Manço", answers: {"1":1,"2":1,"11":1,"29":1,"37":-1}},
+                {name: "Tarkan", answers: {"1":1,"2":1,"11":1,"37":-1}},
+                {name: "Cem Yılmaz", answers: {"1":1,"2":1,"14":1,"37":-1}},
+                {name: "Steve Jobs", answers: {"1":1,"8":1,"29":1,"32":1,"37":-1}},
+                {name: "Bill Gates", answers: {"1":1,"8":1,"32":1,"37":-1}},
+                {name: "Mark Zuckerberg", answers: {"1":1,"8":1,"32":1,"37":-1}},
+                {name: "Leonardo DiCaprio", answers: {"1":1,"14":1,"32":1,"37":-1,"42":1}},
+                {name: "Morgan Freeman", answers: {"1":1,"14":1,"32":1,"37":-1,"42":1}},
+
+                // 10. Teknoloji Ürünleri (+10)
+                {name: "Akıllı Telefon", answers: {"3":1,"8":1,"20":1,"34":-1,"41":1}},
+                {name: "Televizyon", answers: {"3":1,"8":1,"20":1,"34":1,"41":1}},
+                {name: "PlayStation 5", answers: {"3":1,"8":1,"12":1,"20":-1,"34":1,"41":1}},
+                {name: "Akıllı Saat", answers: {"3":1,"8":1,"20":1,"41":1}},
+                {name: "Kulaklık", answers: {"3":1,"8":1,"20":-1,"41":1}},
+                {name: "Laptop", answers: {"3":1,"8":1,"20":1,"34":-1,"41":1}},
+                {name: "Tablet", answers: {"3":1,"8":1,"20":1,"34":-1,"41":1}},
+                {name: "Kamera", answers: {"3":1,"8":1,"20":1,"41":1}},
+                {name: "Drone", answers: {"3":1,"8":1,"15":1,"41":1}},
+                {name: "Yazıcı", answers: {"3":1,"8":1,"20":-1,"34":1,"41":1}},
+
+                // 11. Spor Takımları (+10)
+                {name: "Galatasaray", answers: {"2":1,"7":1,"13":1,"17":1,"30":1,"35":1}},
+                {name: "Fenerbahçe", answers: {"2":1,"7":1,"13":1,"17":1,"31":1,"35":1}},
+                {name: "Beşiktaş", answers: {"2":1,"7":1,"13":1,"17":1,"30":1,"35":1}},
+                {name: "Real Madrid", answers: {"7":1,"13":1,"17":1,"30":1,"35":1}},
+                {name: "Manchester City", answers: {"7":1,"13":1,"17":1,"30":1,"35":1}},
+                {name: "Barcelona", answers: {"7":1,"13":1,"17":1,"30":1,"35":1}},
+                {name: "Bayern Münih", answers: {"7":1,"13":1,"17":1,"30":1,"35":1}},
+                {name: "Juventus", answers: {"7":1,"13":1,"17":1,"30":1,"35":1}},
+                {name: "Liverpool", answers: {"7":1,"13":1,"17":1,"30":1,"35":1}},
+                {name: "Paris Saint-Germain (PSG)", answers: {"7":1,"13":1,"17":1,"30":1,"35":1}},
+
+                // 12. Oyun Karakterleri (+10)
+                {name: "Kratos", answers: {"4":1,"10":1,"12":1,"19":1,"37":-1}},
+                {name: "Super Mario", answers: {"4":1,"10":1,"12":1,"37":-1}},
+                {name: "Master Chief", answers: {"4":1,"10":1,"12":1,"19":1,"37":-1}},
+                {name: "Lara Croft", answers: {"4":1,"12":1,"14":1,"19":1,"37":1}},
+                {name: "Arthur Morgan", answers: {"4":1,"12":1,"19":1,"37":-1}},
+                {name: "Sonic", answers: {"4":1,"5":1,"10":1,"12":1,"37":-1}},
+                {name: "Link (Zelda)", answers: {"4":1,"10":1,"12":1,"19":1,"37":-1}},
+                {name: "Geralt of Rivia", answers: {"4":1,"10":1,"12":1,"19":1,"37":-1}},
+                {name: "Solid Snake", answers: {"4":1,"12":1,"19":1,"37":-1}},
+                {name: "Pikachu", answers: {"4":1,"5":1,"10":1,"12":1,"28":1}},
+
+                // 13. Tarihi Kişiler (+10)
+                {name: "Fatih Sultan Mehmet", answers: {"1":1,"2":1,"29":1,"30":1,"37":-1}},
+                {name: "Kanuni Sultan Süleyman", answers: {"1":1,"2":1,"29":1,"30":1,"37":-1}},
+                {name: "Julius Sezar", answers: {"1":1,"29":1,"30":1,"37":-1}},
+                {name: "Napolyon Bonapart", answers: {"1":1,"29":1,"30":1,"37":-1}},
+                {name: "Büyük İskender", answers: {"1":1,"29":1,"30":1,"37":-1}},
+                {name: "Cengiz Han", answers: {"1":1,"29":1,"31":1,"37":-1}},
+                {name: "Kleopatra", answers: {"1":1,"29":1,"37":1}},
+                {name: "Abraham Lincoln", answers: {"1":1,"29":1,"32":1,"37":-1}},
+                {name: "Winston Churchill", answers: {"1":1,"29":1,"30":1,"37":-1}},
+                {name: "Mimar Sinan", answers: {"1":1,"2":1,"24":1,"29":1,"37":-1}},
+
+                // 14. Meslekler (+10)
+                {name: "Doktor", answers: {"3":-1,"24":1}},
+                {name: "Öğretmen", answers: {"3":-1,"24":1}},
+                {name: "Mühendis", answers: {"3":-1,"24":1}},
+                {name: "Polis", answers: {"3":-1,"19":1,"24":1}},
+                {name: "Avukat", answers: {"3":-1,"24":1}},
+                {name: "Aşçı", answers: {"3":-1,"6":1,"24":1}},
+                {name: "Pilot", answers: {"3":-1,"15":1,"24":1}},
+                {name: "Mimar", answers: {"3":-1,"24":1}},
+                {name: "Çiftçi", answers: {"3":-1,"24":1}},
+                {name: "Yazılımcı / Bilgisayar Mühendisi", answers: {"3":-1,"8":1,"20":1,"24":1}},
+
+                // 15. Doğa Olayları (+10)
+                {name: "Yağmur", answers: {"3":1,"25":1,"43":1}},
+                {name: "Kar", answers: {"3":1,"25":1,"43":-1}},
+                {name: "Deprem", answers: {"3":1,"25":1}},
+                {name: "Kasırga / Fırtına", answers: {"3":1,"25":1}},
+                {name: "Tsunami", answers: {"3":1,"25":1,"40":1}},
+                {name: "Şimşek / Yıldırım", answers: {"3":1,"25":1}},
+                {name: "Gökkuşağı", answers: {"3":1,"25":1}},
+                {name: "Yanardağ Patlaması", answers: {"3":1,"25":1}},
+                {name: "Hortum", answers: {"3":1,"25":1}},
+                {name: "Sis", answers: {"3":1,"25":1}},
+
+                // 16. Gezegenler & Uzay (+10)
+                {name: "Dünya", answers: {"3":1,"26":1,"40":1}},
+                {name: "Mars", answers: {"3":1,"26":1,"44":1}},
+                {name: "Jüpiter", answers: {"3":1,"26":1}},
+                {name: "Satürn", answers: {"3":1,"26":1}},
+                {name: "Venüs", answers: {"3":1,"26":1}},
+                {name: "Merkür", answers: {"3":1,"26":1}},
+                {name: "Uranüs", answers: {"3":1,"26":1}},
+                {name: "Neptün", answers: {"3":1,"26":1}},
+                {name: "Güneş", answers: {"3":1,"26":1}},
+                {name: "Ay", answers: {"3":1,"26":1}},
+
+                // 17. Elektronik / Beyaz Eşya (+10)
+                {name: "Buzdolabı", answers: {"3":1,"8":1,"34":1,"41":1}},
+                {name: "Çamaşır Makinesi", answers: {"3":1,"8":1,"34":1,"41":1}},
+                {name: "Bulaşık Makinesi", answers: {"3":1,"8":1,"34":1,"41":1}},
+                {name: "Ütü", answers: {"3":1,"8":1,"34":1,"41":1}},
+                {name: "Elektrikli Süpürge", answers: {"3":1,"8":1,"34":1,"41":1}},
+                {name: "Mikrodalga Fırın", answers: {"3":1,"8":1,"34":1,"41":1}},
+                {name: "Fırın", answers: {"3":1,"8":1,"34":1,"41":1}},
+                {name: "Vantilatör", answers: {"3":1,"8":1,"34":1,"41":1}},
+                {name: "Klima", answers: {"3":1,"8":1,"34":1,"41":1}},
+                {name: "Saç Kurutma Makinesi", answers: {"3":1,"8":1,"34":1,"41":1}},
+
+                // 18. Spor Dalları (+10)
+                {name: "Futbol", answers: {"7":1,"17":1,"27":1,"35":1,"36":1}},
+                {name: "Basketbol", answers: {"7":1,"27":1,"35":1,"36":1}},
+                {name: "Voleybol", answers: {"7":1,"27":1,"35":1,"36":1}},
+                {name: "Tenis", answers: {"7":1,"27":1,"35":-1,"36":1}},
+                {name: "Yüzme", answers: {"7":1,"27":1,"35":-1,"36":-1,"40":1}},
+                {name: "Atletizm", answers: {"7":1,"27":1,"35":-1,"36":-1}},
+                {name: "Boks", answers: {"7":1,"27":1,"35":-1,"36":-1}},
+                {name: "Güreş", answers: {"7":1,"27":1,"35":-1,"36":-1}},
+                {name: "Masa Tenisi", answers: {"7":1,"27":1,"35":-1,"36":1}},
+                {name: "Golf", answers: {"7":1,"27":1,"35":-1,"36":1}},
+
+                // 19. Çizgi Film Karakterleri (+10)
+                {name: "Süngerbob Karepantolon", answers: {"4":1,"28":1,"40":1}},
+                {name: "Bugs Bunny", answers: {"4":1,"5":1,"28":1}},
+                {name: "Mickey Mouse", answers: {"4":1,"5":1,"28":1}},
+                {name: "Tom (Tom ve Jerry)", answers: {"4":1,"5":1,"28":1,"38":1}},
+                {name: "Jerry (Tom ve Jerry)", answers: {"4":1,"5":1,"28":1,"38":1}},
+                {name: "Scooby-Doo", answers: {"4":1,"5":1,"28":1,"38":1}},
+                {name: "Homer Simpson", answers: {"4":1,"28":1,"37":-1}},
+                {name: "Peter Griffin", answers: {"4":1,"28":1,"37":-1}},
+                {name: "Şirin Baba", answers: {"4":1,"28":1,"37":-1}},
+                {name: "Temel Reis", answers: {"4":1,"28":1,"37":-1}},
+
+                // 20. Müzik Sanatçıları (+10)
+                {name: "Michael Jackson", answers: {"1":1,"11":1,"29":1,"32":-1,"37":-1,"42":1}},
+                {name: "Madonna", answers: {"1":1,"11":1,"32":1,"37":1,"42":1}},
+                {name: "Freddie Mercury", answers: {"1":1,"11":1,"29":1,"30":1,"37":-1}},
+                {name: "Elvis Presley", answers: {"1":1,"11":1,"29":1,"32":1,"37":-1}},
+                {name: "Eminem", answers: {"1":1,"11":1,"32":1,"37":-1,"42":1}},
+                {name: "Beyonce", answers: {"1":1,"11":1,"32":1,"37":1,"42":1}},
+                {name: "Rihanna", answers: {"1":1,"11":1,"32":1,"37":1,"42":1}},
+                {name: "Justin Bieber", answers: {"1":1,"11":1,"32":1,"37":-1}},
+                {name: "Taylor Swift", answers: {"1":1,"11":1,"32":1,"37":1,"42":1}},
+                {name: "Adele", answers: {"1":1,"11":1,"30":1,"37":1,"42":1}}
+            ]
+        };
+
+        /* =========================================
+           KATMAN 2: MEMORY & VERSIONING SYSTEM
+           ========================================= */
+        let db = null;
+        let askedQuestions = [];
+        let currentQuestion = null;
+        let guessedCharacter = null;
+        let learningData = { correctName: "", newQuestion: "", isDuplicateUpdate: false };
+        let currentCertainty = 0;
+        const MAX_QUESTIONS = 35; // DB büyüdüğü için soru hakkı arttırıldı
+
+        window.onload = () => {
+            setTimeout(() => {
+                initDB();
+                updateStatsUI();
+                document.getElementById('db-size-indicator').innerText = `Hafıza: ${db.characters.length} Nesne / ${db.questions.length} Düğüm`;
+                document.getElementById('global-loading').style.opacity = '0';
+                document.getElementById('global-loading').style.visibility = 'hidden';
+                showScreen('screen-intro');
+            }, 1800); 
+        };
+
+        function initDB() {
+            try {
+                const saved = localStorage.getItem(DB_KEY);
+                if (saved) {
+                    db = JSON.parse(saved);
+                    // VERSİYON KONTROLÜ VE OTOMATİK DÜZELTME (Auto-correction & Migration)
+                    if(!db.version || db.version < DB_VERSION) {
+                        console.log("Eski veritabanı tespit edildi. Premium v4 verileriyle birleştiriliyor...");
+                        
+                        // Eksik objeleri tamamla
+                        if (!db.learningHistory) db.learningHistory = [];
+                        
+                        // Yeni soruları ekle
+                        defaultDb.questions.forEach(defQ => {
+                            if(!db.questions.find(q => q.id === defQ.id)) {
+                                db.questions.push(defQ);
+                            }
+                        });
+                        
+                        // Yeni karakterleri ekle (Kullanıcının eklediklerini ezmeden)
+                        defaultDb.characters.forEach(defChar => {
+                            let existing = db.characters.find(c => c.name.toLowerCase() === defChar.name.toLowerCase());
+                            if(!existing) {
+                                db.characters.push(defChar);
+                            } else {
+                                // Var olan karakterin eksik cevaplarını yeni yapıyla güncelle
+                                for(let key in defChar.answers) {
+                                    if(existing.answers[key] === undefined) {
+                                        existing.answers[key] = defChar.answers[key];
+                                    }
+                                }
+                            }
+                        });
+                        db.version = DB_VERSION;
+                        saveDB();
+                    }
+                } else {
+                    const backup = localStorage.getItem(DB_BACKUP_KEY);
+                    db = backup ? JSON.parse(backup) : JSON.parse(JSON.stringify(defaultDb));
+                }
+            } catch(e) {
+                console.error("Veri tabanı onarılıyor...", e);
+                db = JSON.parse(JSON.stringify(defaultDb));
+            }
+            saveDB();
+        }
+
+        function saveDB() {
+            const dbString = JSON.stringify(db);
+            localStorage.setItem(DB_KEY, dbString);
+            localStorage.setItem(DB_BACKUP_KEY, dbString);
+        }
+
+        function resetDatabase() {
+            if(confirm("Tüm makine öğrenimi ve istatistikler kalıcı olarak silinecek. Emin misiniz?")) {
+                localStorage.removeItem(DB_KEY);
+                localStorage.removeItem(DB_BACKUP_KEY);
+                db = JSON.parse(JSON.stringify(defaultDb));
+                saveDB();
+                updateStatsUI();
+                alert("Sinir ağı fabrikasyon ayarlarına döndürüldü.");
+                document.getElementById('db-size-indicator').innerText = `Hafıza: ${db.characters.length} Nesne / ${db.questions.length} Düğüm`;
+                showScreen('screen-intro');
+            }
+        }
+
+        /* =========================================
+           KATMAN 3: STATISTICS SYSTEM
+           ========================================= */
+        function updateStatsUI() {
+            document.getElementById('stat-level').innerText = db.stats.aiLevel;
+            document.getElementById('stat-ai-wins').innerText = db.stats.aiWins;
+            document.getElementById('stat-player-wins').innerText = db.stats.playerWins;
+            
+            const hList = document.getElementById('history-list');
+            if(db.history.length === 0) {
+                hList.innerHTML = '<p style="color: var(--text-muted); text-align: center;">Henüz geçmiş verisi yok.</p>';
+            } else {
+                hList.innerHTML = '';
+                [...db.history].reverse().slice(0, 15).forEach(item => {
+                    let div = document.createElement('div');
+                    div.className = 'history-item';
+                    let statusClass = item.aiWon ? 'status-win' : 'status-loss';
+                    let statusText = item.aiWon ? 'Yapay Zeka Bildi' : 'Kullanıcı Bildi';
+                    div.innerHTML = `
+                        <span class="history-name">${item.character}</span>
+                        <span class="history-status ${statusClass}">${statusText}</span>
+                    `;
+                    hList.appendChild(div);
+                });
+            }
+        }
+
+        function toggleHistory() {
+            const modal = document.getElementById('history-modal');
+            modal.classList.toggle('active');
+        }
+
+        function updateAILevel() {
+            db.stats.aiLevel = Math.floor(db.stats.aiWins / 3) + 1;
+        }
+
+        /* =========================================
+           KATMAN 4: SMART PREDICTION & AI ENGINE
+           ========================================= */
+        function startGame() {
+            askedQuestions = [];
+            currentCertainty = 0;
+            db.stats.totalPlayed++;
+            
+            let initialProb = 1 / db.characters.length;
+            db.characters.forEach(c => { c.prob = initialProb; c.score = initialProb; });
+            updateCertaintyUI();
+            askNextQuestion();
+        }
+
+        function calculateProbabilities(answerValue) {
+            let totalProb = 0;
+            db.characters.forEach(c => {
+                let expectedAns = c.answers[currentQuestion.id];
+                let likelihood = 0.5; 
+                
+                if (answerValue !== 0) { 
+                    if (expectedAns !== undefined) {
+                        let diff = Math.abs(expectedAns - answerValue);
+                        // Bayes katsayısı daha agresif yapıldı
+                        likelihood = 0.95 - (diff * 0.45); 
+                        if (likelihood < 0.005) likelihood = 0.005; 
+                    }
+                }
+                c.prob *= likelihood;
+                totalProb += c.prob;
+            });
+
+            db.characters.forEach(c => {
+                if (totalProb > 0) c.prob /= totalProb;
+                c.score = c.prob; 
+            });
+
+            db.characters.sort((a, b) => b.prob - a.prob);
+            
+            if(db.characters.length > 0) {
+                currentCertainty = (db.characters[0].prob * 100).toFixed(1);
+                if(currentCertainty > 99.9) currentCertainty = 99.9;
+            }
+        }
+
+        function updateCertaintyUI() {
+            document.getElementById('certainty-text').innerText = `Eminlik: %${currentCertainty}`;
+            document.getElementById('certainty-bar').style.width = `${currentCertainty}%`;
+            let bar = document.getElementById('certainty-bar');
+            if(currentCertainty < 40) bar.style.background = "linear-gradient(90deg, #ff416c, #ff4b2b)";
+            else if(currentCertainty < 75) bar.style.background = "linear-gradient(90deg, #f7b733, #fc4a1a)";
+            else bar.style.background = "linear-gradient(90deg, #00b09b, #96c93d)";
+        }
+
+        function askNextQuestion() {
+            if (shouldMakeGuess()) { makeGuess(); return; }
+
+            let unasked = db.questions.filter(q => !askedQuestions.find(aq => aq.qId === q.id));
+            if (unasked.length === 0) { makeGuess(); return; }
+
+            currentQuestion = selectBestQuestion(unasked);
+            
+            document.getElementById('question-count-text').innerText = `Soru ${askedQuestions.length + 1}`;
+            document.getElementById('question-text').innerText = currentQuestion.text;
+            showScreen('screen-question');
+        }
+
+        // Entropy / Information Gain
+        function selectBestQuestion(unaskedQuestions) {
+            let topChars = db.characters.slice(0, 30); // Analiz kapsamı genişletildi
+            let bestQ = null;
+            let minExpectedEntropy = Infinity;
+
+            unaskedQuestions.forEach(q => {
+                let pYes = 0, pNo = 0;
+                topChars.forEach(c => {
+                    let ans = c.answers[q.id];
+                    if (ans > 0) pYes += c.prob;
+                    else if (ans < 0) pNo += c.prob;
+                });
+                
+                let totalP = pYes + pNo;
+                if(totalP > 0) { pYes /= totalP; pNo /= totalP; }
+                else { pYes = 0.5; pNo = 0.5; }
+
+                let splitEntropy = 0;
+                if(pYes > 0) splitEntropy -= pYes * Math.log2(pYes);
+                if(pNo > 0) splitEntropy -= pNo * Math.log2(pNo);
+
+                if (splitEntropy < minExpectedEntropy) {
+                    minExpectedEntropy = splitEntropy;
+                    bestQ = q;
+                }
+            });
+
+            if (!bestQ) bestQ = unaskedQuestions[Math.floor(Math.random() * unaskedQuestions.length)];
+            return bestQ;
+        }
+
+        function handleAnswer(answerValue) {
+            askedQuestions.push({ qId: currentQuestion.id, answer: answerValue });
+            calculateProbabilities(answerValue);
+            updateCertaintyUI();
+
+            const thinkingTexts = ["Nöral Ağlar Derinleşiyor...", "Kuantum İhtimalleri Taranıyor...", "Bayes Matrisi Hesaplanıyor...", "Veritabanı Çaprazlanıyor...", "Bilgi Kazanımı (Entropy) Ölçülüyor..."];
+            document.getElementById('thinking-sub').innerText = thinkingTexts[Math.floor(Math.random() * thinkingTexts.length)];
+
+            showScreen('screen-thinking');
+            setTimeout(askNextQuestion, 800); 
+        }
+
+        function shouldMakeGuess() {
+            if (db.characters.length === 0) return false;
+            let top1 = db.characters[0];
+            
+            if (askedQuestions.length >= MAX_QUESTIONS) return true;
+            if (top1.prob > 0.85 && askedQuestions.length >= 8) return true;
+            
+            let top2 = db.characters.length > 1 ? db.characters[1] : null;
+            if (top2 && (top1.prob / (top2.prob || 0.01)) > 5.0 && askedQuestions.length >= 15) return true;
+
+            return false;
+        }
+
+        function makeGuess() {
+            guessedCharacter = db.characters[0];
+            if(!guessedCharacter) {
+                guessedCharacter = { name: "Bilinmeyen Varlık" };
+                guessResult(false, false, null);
+                return;
+            }
+            
+            document.getElementById('guess-text').innerText = guessedCharacter.name;
+            
+            const altContainer = document.getElementById('alt-guesses-container');
+            const altList = document.getElementById('alt-guesses-list');
+            altList.innerHTML = "";
+            
+            let addedAlts = 0;
+            if(db.characters.length > 1 && db.characters[1].prob > 0.02) {
+                altContainer.style.display = "block";
+                for(let i = 1; i < Math.min(4, db.characters.length); i++) {
+                    if(db.characters[i].prob > 0.01) {
+                        let btn = document.createElement('button');
+                        btn.className = 'alt-badge-btn';
+                        let probTxt = (db.characters[i].prob * 100).toFixed(1);
+                        btn.innerHTML = `<span>${db.characters[i].name}</span> <span class="alt-badge-prob">%${probTxt}</span>`;
+                        btn.onclick = () => guessResult(true, true, db.characters[i].name);
+                        altList.appendChild(btn);
+                        addedAlts++;
+                    }
+                }
+            }
+            if(addedAlts === 0) altContainer.style.display = "none";
+
+            showScreen('screen-guess');
+        }
+
+        function guessResult(isCorrect, isAltSelection = false, altCharName = null) {
+            let finalName = isAltSelection ? altCharName : guessedCharacter.name;
+            
+            if (isCorrect) {
+                db.stats.aiWins++;
+                updateAILevel();
+                db.history.push({ character: finalName, aiWon: true, timestamp: Date.now() });
+                
+                if (isAltSelection) {
+                    let targetChar = db.characters.find(c => c.name === finalName);
+                    if(targetChar) {
+                        askedQuestions.forEach(aq => {
+                            if(aq.answer !== 0 && targetChar.answers[aq.qId] === undefined) {
+                                targetChar.answers[aq.qId] = aq.answer > 0 ? 1 : -1;
+                            }
+                        });
+                    }
+                }
+                
+                saveDB();
+                updateStatsUI();
+                showScreen('screen-win');
+            } else {
+                db.stats.playerWins++;
+                document.getElementById('input-correct-name').value = "";
+                learningData = { correctName: "", newQuestion: "", isDuplicateUpdate: false };
+                showScreen('screen-learn-name');
+            }
+        }
+
+        /* =========================================
+           KATMAN 5: LEARNING ENGINE
+           ========================================= */
+        function submitLearnName() {
+            let name = document.getElementById('input-correct-name').value.trim();
+            if (!name) { alert("Sistem kaydı için geçerli bir isim girmelisiniz."); return; }
+            
+            name = name.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
+            let normalizedInput = name.toLowerCase().replace(/[\s-]/g, '');
+            let existingChar = db.characters.find(c => c.name.toLowerCase().replace(/[\s-]/g, '') === normalizedInput);
+            
+            if(existingChar) {
+                learningData.correctName = existingChar.name;
+                learningData.isDuplicateUpdate = true;
+            } else {
+                learningData.correctName = name;
+                learningData.isDuplicateUpdate = false;
+            }
+            
+            document.getElementById('learn-question-subtitle').innerHTML = 
+                `<strong>${learningData.correctName}</strong> ile <strong>${guessedCharacter.name}</strong> arasındaki temel fark nedir? (Bunu ayırt edecek genel bir soru yaz)`;
+            document.getElementById('input-new-question').value = "";
+            showScreen('screen-learn-question');
+        }
+
+        function submitLearnQuestion() {
+            let qText = document.getElementById('input-new-question').value.trim();
+            if (!qText) { alert("Lütfen ayırıcı bir karakteristik soru girin."); return; }
+            
+            if(!qText.endsWith("?")) qText += "?";
+            qText = qText.charAt(0).toUpperCase() + qText.slice(1);
+            
+            learningData.newQuestion = qText;
+            
+            document.getElementById('learn-answer-text').innerText = qText;
+            document.getElementById('learn-target-name').innerText = learningData.correctName;
+            showScreen('screen-learn-answer');
+        }
+
+        function finishLearning(correctAnswer) {
+            let newQId = db.nextQId++;
+            db.questions.push({ id: newQId, text: learningData.newQuestion });
+
+            let wrongChar = db.characters.find(c => c.name === guessedCharacter.name);
+            if(wrongChar) wrongChar.answers[newQId] = (correctAnswer === 1) ? -1 : 1;
+
+            let targetChar;
+            if (learningData.isDuplicateUpdate) {
+                targetChar = db.characters.find(c => c.name === learningData.correctName);
+            } else {
+                targetChar = { name: learningData.correctName, answers: {} };
+                db.characters.push(targetChar);
+            }
+
+            askedQuestions.forEach(aq => {
+                if(aq.answer !== 0) {
+                    if(!learningData.isDuplicateUpdate || targetChar.answers[aq.qId] === undefined) {
+                        targetChar.answers[aq.qId] = aq.answer > 0 ? 1 : -1;
+                    }
+                }
+            });
+            targetChar.answers[newQId] = correctAnswer; 
+
+            db.history.push({ character: targetChar.name, aiWon: false, timestamp: Date.now() });
+            
+            if(db.learningHistory) {
+                db.learningHistory.push({ type: "new_node", char: targetChar.name, q: learningData.newQuestion });
+            }
+
+            saveDB();
+            updateStatsUI();
+            document.getElementById('db-size-indicator').innerText = `Hafıza: ${db.characters.length} Nesne / ${db.questions.length} Düğüm`;
+            
+            alert("Ağ bağlantıları güncellendi. Yeni bilgi kalıcı hafızaya yazıldı.");
+            showScreen('screen-intro');
+        }
+
+        /* =========================================
+           KATMAN 6: UI CONTROLLER
+           ========================================= */
+        function showScreen(screenId) {
+            document.querySelectorAll('.card').forEach(c => c.classList.remove('active'));
+            setTimeout(() => {
+                const screen = document.getElementById(screenId);
+                if(screen) screen.classList.add('active');
+            }, 50);
+        }
+
+        document.getElementById('input-correct-name').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') submitLearnName();
+        });
+        document.getElementById('input-new-question').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') submitLearnQuestion();
+        });
+
+    </script>
+</body>
+</html>
