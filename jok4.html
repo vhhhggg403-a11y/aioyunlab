@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Kaçış: Overdrive - ONLINE MULTIPLAYER</title>
+    
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #030307;
+            color: #fff;
+            font-family: 'Courier New', Courier, monospace;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        
+        body::after {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.3) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.05), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.05));
+            z-index: 100;
+            background-size: 100% 3px, 6px 100%;
+            pointer-events: none;
+        }
+
+        #gameContainer {
+            position: relative;
+        }
+
+        #gameCanvas {
+            background-color: #060610;
+            box-shadow: 0 0 50px rgba(0, 255, 255, 0.2);
+            border-radius: 12px;
+            cursor: none;
+            border: 4px solid #14142b;
+        }
+
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            pointer-events: none;
+            display: none;
+            gap: 20px;
+            background: rgba(0, 0, 0, 0.85);
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: 2px dashed #00ffff;
+            z-index: 10;
+        }
+
+        #shieldBar {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            width: calc(100% - 40px);
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            display: none;
+            z-index: 10;
+        }
+
+        #shieldProgress {
+            width: 100%;
+            height: 100%;
+            background: #00ff00;
+            box-shadow: 0 0 10px #00ff00;
+            transition: width 0.1s linear;
+        }
+
+        /* ---------------------------------------------------- */
+        /* EL YAPIMI VE ANİMASYONLU YENİ SİBER GİRİŞ EKRANI */
+        /* ---------------------------------------------------- */
+        #startMenu {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #05050c;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-radius: 12px;
+            z-index: 50;
+            border: 4px solid #00ffff;
+            box-shadow: inset 0 0 40px rgba(0, 255, 255, 0.3);
+            overflow: hidden;
+        }
+
+        /* AKAN SİBER ÇİZGİLER (Arka Plan Animasyonu) */
+        .cyber-grid {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(transparent 50%, rgba(0, 255, 255, 0.05) 50%);
+            background-size: 100% 20px;
+            animation: gridScroll 4s linear infinite;
+            pointer-events: none;
+            z-index: 1;
+        }
+        @keyframes gridScroll {
+            0% { background-position-y: 0px; }
+            100% { background-position-y: 400px; }
+        }
+
+        /* GLITCH (TİTREME) ANİMASYONLU BAŞLIK */
+        .glitch-title {
+            color: #00ffff;
+            font-size: 38px;
+            font-weight: bold;
+            text-shadow: 3px 3px 0 #ff0055;
+            margin-bottom: 30px;
+            text-align: center;
+            z-index: 5;
+            animation: titlePulse 1.5s ease-in-out infinite alternate;
+        }
+        @keyframes titlePulse {
+            0% { transform: scale(0.98); text-shadow: 2px 2px 0 #ff0055; }
+            100% { transform: scale(1.02); text-shadow: -3px 2px 0 #00ff00, 3px -2px 0 #ff0055; }
+        }
+
+        .menu-btn {
+            background: rgba(0, 0, 0, 0.6);
+            color: #00ffff;
+            border: 2px solid #00ffff;
+            padding: 12px 25px;
+            font-size: 16px;
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: bold;
+            margin: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            z-index: 5;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.1);
+        }
+        .menu-btn:hover {
+            background: #00ffff;
+            color: #000;
+            box-shadow: 0 0 25px #00ffff;
+            transform: translateY(-2px);
+        }
+
+        /* ONLINE BAĞLANTI PANELİ */
+        .online-panel {
+            background: rgba(10, 10, 25, 0.9);
+            border: 2px dashed #ffaa00;
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 6px;
+            text-align: center;
+            z-index: 5;
+            max-width: 85%;
+            display: none;
+        }
+        input {
+            background: #000;
+            border: 1px solid #ffaa00;
+            color: #ffaa00;
+            padding: 8px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 16px;
+            text-align: center;
+            margin: 10px 0;
+            width: 80%;
+        }
+        #statusText {
+            color: #ffaa00;
+            font-size: 13px;
+            margin-top: 8px;
+            font-weight: bold;
+        }
+
+        .controls-text {
+            margin-top: 25px;
+            color: #666;
+            font-size: 12px;
+            text-align: center;
+            line-height: 1.4;
+            z-index: 5;
+        }
+
+        /* OYUN BİTTİ EKRANI */
+        #gameOver {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            background: rgba(5, 5, 12, 0.95);
+            padding: 40px;
+            border: 3px solid #ff0055;
+            box-shadow: 0 0 50px rgba(255, 0, 85, 0.5);
+            text-align: center;
+            z-index: 40;
+            width: 75%;
+        }
+        #gameOver h2 {
+            margin-top: 0;
+            color: #ff0055;
+            font-size: 32px;
+            text-shadow: 2px 2px 0px #fff;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="gameContainer">
+        
+        <div id="startMenu">
+            <div class="cyber-grid"></div>
+            <div class="glitch-title">NEON KAÇIŞ<br><span style="font-size: 18px; color:#fff; text-shadow: none;">[ ONLINE OVERDRIVE ]</span></div>
+            
+            <button class="menu-btn" onclick="startSoloGame()">[ TEK OYUNCULU ]</button>
+            <button class="menu-btn" style="border-color: #ffaa00; color: #ffaa00;" onclick="showOnlinePanel()">[ ONLINE ÇOK OYUNCULU ]</button>
+            
+            <div class="online-panel" id="onlinePanel">
+                <div id="roomCreationSection">
+                    <button class="menu-btn" style="font-size:13px;" onclick="initAsHost()">1. ODA OLUŞTUR (HOST)</button>
+                    <div id="hostIdDisplay" style="margin: 5px 0; font-size:14px; color:#00ff00;"></div>
+                </div>
+                <div style="margin: 10px 0; color:#555;">- VEYA -</div>
+                <div>
+                    <input type="text" id="joinIdInput" placeholder="Oda Kodunu Yapıştırın">
+                    <button class="menu-btn" style="font-size:13px; border-color:#ffaa00; color:#ffaa00;" onclick="initAsGuest()">2. ODAYA KATIL (JOIN)</button>
+                </div>
+                <div id="statusText">> Sistem Hazır.</div>
+            </div>
+            
+            <div class="controls-text">
+                P1 (Mavi Küp) - P2 (Turuncu Küp)<br>
+                Her iki oyuncu da kendi ekranında fare/dokunmatik ile oynar.<br>
+                Bir kişi elenirse, sistem çöker!
+            </div>
+        </div>
+
+        <div id="ui">
+            <div>SKOR: <span id="score">0</span></div>
+            <div style="color: #ffaa00;">REKOR: <span id="highScore">0</span></div>
+        </div>
+        
+        <canvas id="gameCanvas" width="400" height="600"></canvas>
+        
+        <div id="shieldBar"><div id="shieldProgress"></div></div>
+        
+        <div id="gameOver">
+            <h2>SİSTEM ÇÖKTÜ!</h2>
+            <p style="font-size: 18px; margin: 10px 0;">Nihai Skor: <strong id="finalScore" style="font-size: 28px; color: #00ffff;">0</strong></p>
+            <button class="menu-btn" onclick="resetGame()">YENİDEN BAŞLAT</button>
+            <button class="menu-btn" style="border-color:#ffaa00; color:#ffaa00;" onclick="goToMenu()">ANA MENÜ</button>
+        </div>
+
+    </div>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const scoreElement = document.getElementById("score");
+        const highScoreElement = document.getElementById("highScore");
+        const gameOverScreen = document.getElementById("gameOver");
+        const finalScoreElement = document.getElementById("finalScore");
+        const shieldBar = document.getElementById("shieldBar");
+        const shieldProgress = document.getElementById("shieldProgress");
+        const startMenu = document.getElementById("startMenu");
+        const ui = document.getElementById("ui");
+        const onlinePanel = document.getElementById("onlinePanel");
+        const statusText = document.getElementById("statusText");
+        const hostIdDisplay = document.getElementById("hostIdDisplay");
+        const joinIdInput = document.getElementById("joinIdInput");
+
+        let score = 0;
+        let highScore = localStorage.getItem("neon_highscore") || 0;
+        highScoreElement.innerText = highScore;
+
+        let gameActive = false;
+        let animationId;
+        let frameCount = 0;
+
+        const items = [];
+        const particles = [];
+        
+        // P1 ve P2 Kalkan Bilgileri
+        let isShielded = false;
+        let shieldTimeLeft = 0;
+        let p2Shielded = false;
+        let p2ShieldTimeLeft = 0;
+        const maxShieldTime = 300; 
+
+        // ----------------------------------------------------
+        // NETWORKING (ONLINE BAĞLANTI) DEĞİŞKENLERİ
+        // ----------------------------------------------------
+        let peer = null;
+        let conn = null;
+        let isMultiplayer = false;
+        let myRole = "solo"; // "host", "guest" veya "solo"
+
+        // Ses Motoru (Orijinal)
+        let audioCtx = null;
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        }
+
+        function playSound(freq, type, duration, vol = 0.1) {
+            if (!audioCtx) return;
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                if(type === 'sawtooth') {
+                    osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + duration);
+                } else if(type === 'sine' && freq > 500) {
+                    osc.frequency.exponentialRampToValueAtTime(freq * 1.5, audioCtx.currentTime + duration);
+                }
+                gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch(e) {}
+        }
+
+        function createExplosion(x, y, color, count = 12) {
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x: x, y: y,
+                    vx: (Math.random() - 0.5) * 8,
+                    vy: (Math.random() - 0.5) * 8,
+                    size: Math.random() * 3 + 2,
+                    color: color, alpha: 1
+                });
+            }
+        }
+
+        // ORİJİNAL OYUNCU KUTULARI
+        const player = { x: canvas.width / 2 - 15, y: canvas.height - 60, width: 30, height: 30, color: "#00ffff" };
+        const player2 = { x: canvas.width / 2 - 15, y: canvas.height - 60, width: 30, height: 30, color: "#ffaa00" };
+        const enemies = [];
+
+        // Kontroller (Hangi roldeysen o küpü yönetirsin)
+        function movePlayer(clientX) {
+            if(!gameActive) return;
+            const rect = canvas.getBoundingClientRect();
+            let newX = clientX - rect.left - player.width / 2;
+            
+            if (newX < 0) newX = 0;
+            if (newX + player.width > canvas.width) newX = canvas.width - player.width;
+            
+            if (myRole === "guest") {
+                player2.x = newX; // Guest ise turuncu küpü oynatır
+                if(conn && conn.open) conn.send({type: "pos", x: player2.x});
+            } else {
+                player.x = newX;  // Host veya Solo ise mavi küpü oynatır
+                if(myRole === "host" && conn && conn.open) conn.send({type: "pos", x: player.x});
+            }
+        }
+
+        canvas.addEventListener("mousemove", (e) => movePlayer(e.clientX));
+        canvas.addEventListener("touchmove", (e) => {
+            e.preventDefault();
+            movePlayer(e.touches[0].clientX);
+        }, { passive: false });
+
+        function spawnEnemy() {
+            const size = Math.random() * 25 + 15;
+            const x = Math.random() * (canvas.width - size);
+            const speed = Math.random() * 3 + 3 + (score / 300); 
+            
+            enemies.push({ x: x, y: -size, width: size, height: height = size, color: "#ff0055", speed: speed });
+        }
+
+        function spawnPowerUp() {
+            if (Math.random() > 0.4) return;
+            const size = 18;
+            const x = Math.random() * (canvas.width - size);
+            const type = Math.random() > 0.75 ? "shield" : "coin";
+            const color = type === "shield" ? "#00ff00" : "#ffff00";
+
+            items.push({ x: x, y: -size, width: size, height: size, color: color, type: type, speed: 2.5 });
+        }
+
+        function drawPlayers() {
+            // P1 Mavi Çizimi
+            ctx.fillStyle = isShielded ? "#00ff00" : player.color;
+            ctx.shadowBlur = isShielded ? 25 : 20;
+            ctx.shadowColor = isShielded ? "#00ff00" : player.color;
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+            if(isShielded) {
+                ctx.strokeStyle = "#00ff00"; ctx.lineWidth = 2; ctx.beginPath();
+                ctx.arc(player.x + player.width/2, player.y + player.height/2, player.width * 1.1, 0, Math.PI*2); ctx.stroke();
+            }
+
+            // P2 Turuncu Çizimi (Sadece Multiplayer Modda)
+            if (isMultiplayer) {
+                ctx.fillStyle = p2Shielded ? "#00ff00" : player2.color;
+                ctx.shadowBlur = p2Shielded ? 25 : 20;
+                ctx.shadowColor = p2Shielded ? "#00ff00" : player2.color;
+                ctx.fillRect(player2.x, player2.y, player2.width, player2.height);
+                if(p2Shielded) {
+                    ctx.strokeStyle = "#00ff00"; ctx.lineWidth = 2; ctx.beginPath();
+                    ctx.arc(player2.x + player2.width/2, player2.y + player2.height/2, player2.width * 1.1, 0, Math.PI*2); ctx.stroke();
+                }
+            }
+            ctx.shadowBlur = 0; 
+        }
+
+        function drawEnemies() {
+            enemies.forEach(enemy => {
+                ctx.fillStyle = enemy.color; ctx.shadowBlur = 15; ctx.shadowColor = enemy.color;
+                ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height); ctx.shadowBlur = 0;
+            });
+        }
+
+        // Orijinal oyun döngüsü güncellendi (Online veri aktarımı entegre edildi)
+        function update() {
+            if (!gameActive) return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Motor izi parçacıkları efekti
+            if(frameCount % 3 === 0) {
+                particles.push({
+                    x: player.x + player.width/2 + (Math.random() - 0.5) * 10, y: player.y + player.height,
+                    vx: (Math.random() - 0.5) * 1, vy: Math.random() * 2 + 1, size: Math.random() * 2 + 1,
+                    color: isShielded ? "#00ff00" : "#00ffff", alpha: 0.6
+                });
+                if (isMultiplayer) {
+                    particles.push({
+                        x: player2.x + player2.width/2 + (Math.random() - 0.5) * 10, y: player2.y + player2.height,
+                        vx: (Math.random() - 0.5) * 1, vy: Math.random() * 2 + 1, size: Math.random() * 2 + 1,
+                        color: p2Shielded ? "#00ff00" : "#ffaa00", alpha: 0.6
+                    });
+                }
+            }
+
+            drawPlayers();
+
+            // YALNIZCA HOST VEYA SOLO DÜŞMAN ÜRETİR VE YÖNETİR
+            if (myRole !== "guest") {
+                frameCount++;
+                let spawnRate = Math.max(15, 50 - Math.floor(score / 50)); 
+                if (frameCount % spawnRate === 0) spawnEnemy();
+                if (frameCount % (spawnRate * 4) === 0) spawnPowerUp();
+
+                // Düşmanları hareket ettir ve kontrol et
+                for (let i = 0; i < enemies.length; i++) {
+                    let enemy = enemies[i];
+                    enemy.y += enemy.speed;
+
+                    // P1 Çarpışma Testi
+                    if (player.x < enemy.x + enemy.width && player.x + player.width > enemy.x && player.y < enemy.y + enemy.height && player.y + player.height > enemy.y) {
+                        if (isShielded) {
+                            createExplosion(enemy.x + enemy.width/2, enemy.y + enemy.height/2, enemy.color, 16);
+                            enemies.splice(i, 1); i--; score += 20; scoreElement.innerText = score;
+                            playSound(220, 'triangle', 0.2); continue;
+                        } else {
+                            triggerGameOver(); return;
+                        }
+                    }
+
+                    // P2 Çarpışma Testi
+                    if (isMultiplayer && player2.x < enemy.x + enemy.width && player2.x + player2.width > enemy.x && player2.y < enemy.y + enemy.height && player2.y + player2.height > enemy.y) {
+                        if (p2Shielded) {
+                            createExplosion(enemy.x + enemy.width/2, enemy.y + enemy.height/2, enemy.color, 16);
+                            enemies.splice(i, 1); i--; score += 20; scoreElement.innerText = score;
+                            playSound(220, 'triangle', 0.2); continue;
+                        } else {
+                            triggerGameOver(); return;
+                        }
+                    }
+
+                    if (enemy.y > canvas.height) {
+                        enemies.splice(i, 1); i--; score += 10; scoreElement.innerText = score;
+                    }
+                }
+
+                // Güçlendiricileri hareket ettir ve kontrol et
+                for (let j = 0; j < items.length; j++) {
+                    let item = items[j];
+                    item.y += item.speed;
+
+                    ctx.fillStyle = item.color;
+                    if(item.type === "shield") {
+                        ctx.beginPath(); ctx.arc(item.x + item.width/2, item.y + item.height/2, item.width/2, 0, Math.PI*2); ctx.fill();
+                    } else {
+                        ctx.fillRect(item.x, item.y, item.width, item.height);
+                    }
+
+                    let hitP1 = (player.x < item.x + item.width && player.x + player.width > item.x && player.y < item.y + item.height && player.y + player.height > item.y);
+                    let hitP2 = isMultiplayer && (player2.x < item.x + item.width && player2.x + player2.width > item.x && player2.y < item.y + item.height && player2.y + player2.height > item.y);
+
+                    if (hitP1 || hitP2) {
+                        createExplosion(item.x + item.width/2, item.y + item.height/2, item.color, 15);
+                        if (item.type === "shield") {
+                            if(hitP1) { isShielded = true; shieldTimeLeft = maxShieldTime; } 
+                            else { p2Shielded = true; p2ShieldTimeLeft = maxShieldTime; }
+                            shieldBar.style.display = "block"; playSound(440, 'sine', 0.4);
+                        } else {
+                            score += 50; scoreElement.innerText = score; playSound(880, 'sine', 0.15);
+                        }
+                        items.splice(j, 1); j--; continue;
+                    }
+
+                    if (item.y > canvas.height) { items.splice(j, 1); j--; }
+                }
+
+                // Kalkan süre kontrolü
+                if (isShielded) { shieldTimeLeft--; shieldProgress.style.width = (shieldTimeLeft / maxShieldTime) * 100 + "%"; if (shieldTimeLeft <= 0) { isShielded = false; if(!p2Shielded) shieldBar.style.display = "none"; } }
+                if (p2Shielded) { p2ShieldTimeLeft--; if(!isShielded) shieldProgress.style.width = (p2ShieldTimeLeft / maxShieldTime) * 100 + "%"; if (p2ShieldTimeLeft <= 0) { p2Shielded = false; if(!isShielded) shieldBar.style.display = "none"; } }
+
+                // Host verileri Guest cihaza gönderir
+                if (myRole === "host" && conn && conn.open) {
+                    conn.send({
+                        type: "sync",
+                        enemies: enemies,
+                        items: items,
+                        score: score,
+                        isShielded: isShielded,
+                        p2Shielded: p2Shielded,
+                        shieldTimeLeft: shieldTimeLeft,
+                        p2ShieldTimeLeft: p2ShieldTimeLeft
+                    });
+                }
+            } else {
+                // GUEST CİHAZ SADECE GELEN ÖĞELERİ ÇİZER
+                enemies.forEach(enemy => {
+                    ctx.fillStyle = enemy.color; ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+                });
+                items.forEach(item => {
+                    ctx.fillStyle = item.color;
+                    if(item.type === "shield") {
+                        ctx.beginPath(); ctx.arc(item.x + item.width/2, item.y + item.height/2, item.width/2, 0, Math.PI*2); ctx.fill();
+                    } else { ctx.fillRect(item.x, item.y, item.width, item.height); }
+                });
+                // Kalkan göstergesi güncelleme (Guest)
+                if (isShielded || p2Shielded) {
+                    shieldBar.style.display = "block";
+                    let activeTime = isShielded ? shieldTimeLeft : p2ShieldTimeLeft;
+                    shieldProgress.style.width = (activeTime / maxShieldTime) * 100 + "%";
+                } else { shieldBar.style.display = "none"; }
+            }
+
+            drawEnemies();
+
+            // Parçacık simülasyonu (Ortak)
+            for (let p = 0; p < particles.length; p++) {
+                let part = particles[p]; part.x += part.vx; part.y += part.vy; part.alpha -= 0.02;
+                if (part.alpha <= 0) { particles.splice(p, 1); p--; continue; }
+                ctx.save(); ctx.globalAlpha = part.alpha; ctx.fillStyle = part.color; ctx.fillRect(part.x, part.y, part.size, part.size); ctx.restore();
+            }
+
+            animationId = requestAnimationFrame(update);
+        }
+
+        // Oyun Bitiş Tetikleyicisi
+        function triggerGameOver() {
+            createExplosion(player.x + player.width/2, player.y + player.height/2, "#ff0055", 30);
+            createExplosion(player2.x + player2.width/2, player2.y + player2.height/2, "#ffaa00", 30);
+            playSound(100, 'sawtooth', 0.8, 0.2);
+            
+            if (myRole === "host" && conn && conn.open) conn.send({type: "gameover"});
+            endGame();
+        }
+
+        function endGame() {
+            gameActive = false;
+            cancelAnimationFrame(animationId);
+            canvas.style.cursor = "default";
+            gameOverScreen.style.display = "flex";
+            finalScoreElement.innerText = score;
+
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem("neon_highscore", highScore);
+                highScoreElement.innerText = highScore;
+            }
+        }
+
+        // ----------------------------------------------------
+        // MULTIPLAYER CODES (BAĞLANTI AYARLARI)
+        // ----------------------------------------------------
+        function showOnlinePanel() {
+            onlinePanel.style.display = "block";
+            initAudio();
+        }
+
+        function startSoloGame() {
+            initAudio();
+            myRole = "solo";
+            isMultiplayer = false;
+            launchGame();
+        }
+
+        function generateRoomId() {
+            return Math.floor(1000 + Math.random() * 9000).toString(); // 4 haneli kolay oda kodu
+        }
+
+        function initAsHost() {
+            statusText.innerText = "> Sinyal sunucusuna bağlanılıyor...";
+            const roomId = generateRoomId();
+            peer = new Peer(roomId);
+
+            peer.on('open', (id) => {
+                hostIdDisplay.innerHTML = `ODA KODUNUZ: <strong>${id}</strong><br><span style='font-size:11px;color:#aaa;'>Arkadaşına bu kodu gönder!</span>`;
+                statusText.innerText = "> Oda kuruldu. Oyuncu 2 bekleniyor...";
+            });
+
+            peer.on('connection', (connection) => {
+                conn = connection;
+                setupConnection();
+                statusText.innerText = "> Oyuncu bağlandı! Oyun başlıyor...";
+                setTimeout(() => {
+                    myRole = "host";
+                    isMultiplayer = true;
+                    if(conn && conn.open) conn.send({type: "start"});
+                    launchGame();
+                }, 1500);
+            });
+
+            peer.on('error', (err) => {
+                if(err.type === 'unavailable-id') {
+                    // Kod çakışması varsa tekrar dene
+                    initAsHost();
+                } else {
+                    statusText.innerText = "> Hata: " + err.type;
+                }
+            });
+        }
+
+        function initAsGuest() {
+            const targetId = joinIdInput.value.trim();
+            if(!targetId) { statusText.innerText = "> Lütfen geçerli bir oda kodu girin!"; return; }
+
+            statusText.innerText = "> Odaya bağlanılıyor...";
+            peer = new Peer();
+
+            peer.on('open', () => {
+                conn = peer.connect(targetId);
+                setupConnection();
+            });
+
+            peer.on('error', (err) => { statusText.innerText = "> Bağlantı hatası!"; });
+        }
+
+        function setupConnection() {
+            conn.on('open', () => {
+                if(myRole !== "host") {
+                    statusText.innerText = "> Odaya girildi! Hostun oyunu başlatması bekleniyor...";
+                }
+            });
+
+            conn.on('data', (data) => {
+                if (data.type === "start") {
+                    myRole = "guest";
+                    isMultiplayer = true;
+                    launchGame();
+                }
+                else if (data.type === "pos") {
+                    // Karşı oyuncunun konumunu al
+                    if (myRole === "host") player2.x = data.x;
+                    else player.x = data.x;
+                }
+                else if (data.type === "sync") {
+                    // Guest ekranı senkronizasyonu
+                    enemies.length = 0;
+                    data.enemies.forEach(e => enemies.push(e));
+                    items.length = 0;
+                    data.items.forEach(i => items.push(i));
+                    score = data.score;
+                    scoreElement.innerText = score;
+                    isShielded = data.isShielded;
+                    p2Shielded = data.p2Shielded;
+                    shieldTimeLeft = data.shieldTimeLeft;
+                    p2ShieldTimeLeft = data.p2ShieldTimeLeft;
+                }
+                else if (data.type === "gameover") {
+                    endGame();
+                }
+                else if (data.type === "restart") {
+                    resetGameLogic();
+                    gameOverScreen.style.display = "none";
+                    gameActive = true;
+                    canvas.style.cursor = "none";
+                }
+            });
+        }
+
+        function launchGame() {
+            startMenu.style.display = "none";
+            ui.style.display = "flex";
+            resetGameLogic();
+            gameActive = true;
+            canvas.style.cursor = "none";
+            update();
+        }
+
+        function resetGameLogic() {
+            score = 0;
+            scoreElement.innerText = score;
+            enemies.length = 0;
+            items.length = 0;
+            particles.length = 0;
+            isShielded = false;
+            p2Shielded = false;
+            shieldBar.style.display = "none";
+            frameCount = 0;
+            player.x = canvas.width / 2 - 40;
+            player2.x = canvas.width / 2 + 10;
+        }
+
+        function resetGame() {
+            if (myRole === "host" && conn && conn.open) conn.send({type: "restart"});
+            resetGameLogic();
+            gameOverScreen.style.display = "none";
+            gameActive = true;
+            canvas.style.cursor = "none";
+            update();
+        }
+
+        function goToMenu() {
+            if(peer) { peer.destroy(); peer = null; }
+            if(conn) { conn.close(); conn = null; }
+            gameActive = false;
+            cancelAnimationFrame(animationId);
+            gameOverScreen.style.display = "none";
+            ui.style.display = "none";
+            onlinePanel.style.display = "none";
+            hostIdDisplay.innerText = "";
+            joinIdInput.value = "";
+            statusText.innerText = "> Sistem Hazır.";
+            startMenu.style.display = "flex";
+            canvas.style.cursor = "default";
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+    </script>
+</body>
+</html>
