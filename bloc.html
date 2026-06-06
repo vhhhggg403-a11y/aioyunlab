@@ -1,0 +1,1953 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0d0d1a">
+<title>Block Blast Adventure</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+/* ===================== CSS RESET & ROOT ===================== */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+:root{
+  --primary:#6c3bff;--primary-light:#8a5fff;--primary-dark:#4a1fe8;
+  --accent:#ff6b35;--accent2:#ffd700;--accent3:#00e5ff;--accent4:#39ff14;
+  --bg-deep:#0d0d1a;--bg-dark:#12122a;--bg-mid:#1a1a3a;--bg-light:#242450;
+  --card:#1e1e42;--card-border:rgba(108,59,255,0.3);
+  --text:#fff;--text-dim:rgba(255,255,255,0.65);--text-muted:rgba(255,255,255,0.35);
+  --glass:rgba(255,255,255,0.04);--glass-border:rgba(255,255,255,0.08);
+  --shadow:0 8px 32px rgba(0,0,0,0.5);
+  --radius:16px;--radius-sm:10px;--radius-xs:6px;
+  --cell:calc((min(100vw,480px) - 32px) / 8);
+  --piece-cell:28px;
+  --anim:cubic-bezier(0.34,1.56,0.64,1);
+  --font-game:'Orbitron',monospace;--font-ui:'Nunito',sans-serif;
+  /* themes */
+  --theme-c1:#6c3bff;--theme-c2:#ff6b35;--theme-c3:#00e5ff;--theme-c4:#39ff14;
+  --theme-c5:#ff1493;--theme-c6:#ffd700;--theme-c7:#ff4d4d;--theme-c8:#7fff00;
+}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);color:var(--text);font-family:var(--font-ui);user-select:none;-webkit-user-select:none}
+/* ===================== ANIMATIONS ===================== */
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideUp{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes slideDown{from{transform:translateY(-40px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes popIn{from{transform:scale(0.5);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.05);opacity:0.85}}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+@keyframes shimmer{0%{background-position:-200% center}100%{background-position:200% center}}
+@keyframes explode{0%{transform:scale(1);opacity:1}50%{transform:scale(2.5);opacity:0.7}100%{transform:scale(0);opacity:0}}
+@keyframes cellClear{0%{transform:scale(1);opacity:1}30%{transform:scale(1.3);opacity:1}100%{transform:scale(0);opacity:0}}
+@keyframes cellPlace{0%{transform:scale(0.5) rotate(-5deg);opacity:0}100%{transform:scale(1) rotate(0deg);opacity:1}}
+@keyframes floatUp{0%{transform:translateY(0);opacity:1}100%{transform:translateY(-80px);opacity:0}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+@keyframes glow{0%,100%{box-shadow:0 0 10px var(--primary),0 0 20px var(--primary)}50%{box-shadow:0 0 20px var(--primary),0 0 40px var(--primary),0 0 60px var(--primary)}}
+@keyframes rainbowShift{0%{filter:hue-rotate(0deg)}100%{filter:hue-rotate(360deg)}}
+@keyframes starBurst{0%{transform:scale(0) rotate(0deg);opacity:1}100%{transform:scale(3) rotate(180deg);opacity:0}}
+@keyframes comboText{0%{transform:scale(0.3) translateY(0);opacity:1}60%{transform:scale(1.3) translateY(-30px);opacity:1}100%{transform:scale(1) translateY(-60px);opacity:0}}
+@keyframes boardShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+@keyframes coinSpin{0%{transform:rotateY(0deg)}100%{transform:rotateY(360deg)}}
+@keyframes rewardPop{0%{transform:scale(0) rotate(-15deg);opacity:0}70%{transform:scale(1.1) rotate(3deg);opacity:1}100%{transform:scale(1) rotate(0deg);opacity:1}}
+@keyframes particleBurst{0%{transform:translate(0,0) scale(1);opacity:1}100%{transform:translate(var(--px),var(--py)) scale(0);opacity:0}}
+@keyframes menuFloat{0%,100%{transform:translateY(0) rotate(0deg)}33%{transform:translateY(-12px) rotate(2deg)}66%{transform:translateY(-6px) rotate(-1deg)}}
+@keyframes bgPulse{0%,100%{opacity:0.5}50%{opacity:1}}
+@keyframes spinnerArc{0%{stroke-dashoffset:200}100%{stroke-dashoffset:0}}
+@keyframes chestRock{0%,100%{transform:rotate(0deg)}25%{transform:rotate(-8deg)}75%{transform:rotate(8deg)}}
+@keyframes gridLine{0%{opacity:0;transform:scaleX(0)}100%{opacity:1;transform:scaleX(1)}}
+
+/* ===================== LAYOUT ===================== */
+#app{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.screen{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;overflow:hidden;opacity:0;pointer-events:none;transition:opacity 0.35s ease,transform 0.35s ease}
+.screen.active{opacity:1;pointer-events:all;transform:none!important}
+.screen-bg{position:absolute;inset:0;background:radial-gradient(ellipse at 50% -20%,rgba(108,59,255,0.25) 0%,transparent 60%),radial-gradient(ellipse at 80% 100%,rgba(255,107,53,0.15) 0%,transparent 50%),var(--bg-deep);z-index:0}
+.screen-content{position:relative;z-index:1;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;max-width:480px;margin:0 auto}
+
+/* ===================== PARTICLES BG ===================== */
+#particles-canvas{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:0.4}
+
+/* ===================== BUTTONS ===================== */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;cursor:pointer;font-family:var(--font-ui);font-weight:800;letter-spacing:0.5px;transition:all 0.2s var(--anim);position:relative;overflow:hidden}
+.btn::after{content:'';position:absolute;inset:0;background:linear-gradient(rgba(255,255,255,0.15),transparent);opacity:0;transition:opacity 0.2s}
+.btn:hover::after{opacity:1}
+.btn:active{transform:scale(0.94)!important}
+.btn-primary{background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;border-radius:var(--radius);padding:16px 32px;font-size:17px;box-shadow:0 4px 20px rgba(108,59,255,0.4),inset 0 1px 0 rgba(255,255,255,0.2)}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(108,59,255,0.6)}
+.btn-accent{background:linear-gradient(135deg,#ff6b35,#ff3d00);color:#fff;border-radius:var(--radius);padding:14px 28px;font-size:16px;box-shadow:0 4px 20px rgba(255,107,53,0.4)}
+.btn-gold{background:linear-gradient(135deg,#ffd700,#ff9500);color:#1a0a00;border-radius:var(--radius);padding:14px 28px;font-size:16px;font-weight:900;box-shadow:0 4px 20px rgba(255,215,0,0.4)}
+.btn-glass{background:var(--glass);border:1px solid var(--glass-border);color:var(--text);border-radius:var(--radius-sm);padding:12px 20px;font-size:14px;backdrop-filter:blur(10px)}
+.btn-icon{background:var(--glass);border:1px solid var(--glass-border);color:var(--text);border-radius:50%;width:44px;height:44px;font-size:20px;backdrop-filter:blur(10px)}
+.btn-icon:hover{background:var(--card);border-color:var(--primary)}
+.btn-wide{width:100%;max-width:320px}
+.btn-sm{padding:10px 18px;font-size:13px;border-radius:var(--radius-sm)}
+.btn-disabled{opacity:0.5;pointer-events:none}
+/* ripple */
+.ripple{position:absolute;border-radius:50%;background:rgba(255,255,255,0.3);transform:scale(0);animation:rippleAnim 0.6s ease-out forwards;pointer-events:none}
+@keyframes rippleAnim{to{transform:scale(4);opacity:0}}
+
+/* ===================== CARD ===================== */
+.card{background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);padding:16px}
+.card-glass{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius);backdrop-filter:blur(12px)}
+
+/* ===================== HEADER BAR ===================== */
+.top-bar{width:100%;display:flex;align-items:center;justify-content:space-between;padding:12px 16px;position:relative;z-index:10;flex-shrink:0}
+.currency-group{display:flex;gap:8px}
+.currency-pill{display:flex;align-items:center;gap:6px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,215,0,0.2);border-radius:50px;padding:6px 12px;font-weight:700;font-size:14px;color:#ffd700}
+.currency-pill .icon{font-size:16px}
+.currency-pill.gems{color:#00e5ff;border-color:rgba(0,229,255,0.2)}
+
+/* ===================== MAIN MENU ===================== */
+#screen-menu{background:var(--bg-deep)}
+#screen-menu .screen-bg{background:
+  radial-gradient(ellipse at 30% 20%,rgba(108,59,255,0.3) 0%,transparent 50%),
+  radial-gradient(ellipse at 80% 80%,rgba(255,107,53,0.2) 0%,transparent 45%),
+  radial-gradient(ellipse at 60% 50%,rgba(0,229,255,0.1) 0%,transparent 40%),
+  var(--bg-deep)}
+.menu-logo{margin-top:16px;text-align:center;animation:slideDown 0.6s var(--anim)}
+.logo-title{font-family:var(--font-game);font-size:28px;font-weight:900;line-height:1;background:linear-gradient(135deg,#fff 0%,#a78bff 50%,#ffd700 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-shadow:none;letter-spacing:1px}
+.logo-sub{font-size:13px;color:var(--accent2);letter-spacing:3px;text-transform:uppercase;margin-top:4px;font-weight:700}
+.menu-hero{flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;position:relative}
+.menu-board-preview{display:grid;grid-template-columns:repeat(8,1fr);gap:2px;width:200px;height:200px;padding:8px;background:rgba(0,0,0,0.3);border-radius:var(--radius);border:1px solid var(--card-border);animation:menuFloat 4s ease-in-out infinite}
+.prev-cell{border-radius:3px;background:var(--bg-light);transition:all 0.3s}
+.prev-cell.filled{animation:pulse 2s ease-in-out infinite}
+.menu-stats{display:flex;gap:12px;margin-top:12px;animation:slideUp 0.6s var(--anim) 0.2s both}
+.stat-badge{display:flex;flex-direction:column;align-items:center;background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius-sm);padding:10px 16px;min-width:80px}
+.stat-val{font-family:var(--font-game);font-size:18px;font-weight:700;color:var(--accent2)}
+.stat-lbl{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+.menu-actions{width:100%;padding:0 24px 24px;display:flex;flex-direction:column;gap:12px;align-items:center;animation:slideUp 0.6s var(--anim) 0.4s both}
+.menu-icon-row{display:flex;gap:12px;justify-content:center}
+.menu-icon-btn{display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius-sm);padding:12px 16px;font-size:22px;cursor:pointer;transition:all 0.2s var(--anim);min-width:70px}
+.menu-icon-btn:hover{transform:translateY(-3px);border-color:var(--primary)}
+.menu-icon-btn:active{transform:scale(0.93)}
+.menu-icon-btn span{font-size:11px;color:var(--text-dim);font-weight:600}
+.daily-badge{position:absolute;top:-6px;right:-6px;background:#ff1493;color:#fff;font-size:9px;font-weight:900;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;animation:pulse 1.5s ease-in-out infinite}
+
+/* ===================== GAME SCREEN ===================== */
+#screen-game{flex-direction:column;padding:0}
+.game-top-bar{width:100%;display:flex;align-items:center;justify-content:space-between;padding:10px 16px 8px;flex-shrink:0;z-index:10}
+.score-display{display:flex;flex-direction:column;align-items:center;min-width:90px}
+.score-val{font-family:var(--font-game);font-size:22px;font-weight:900;color:#fff;transition:all 0.3s var(--anim);line-height:1}
+.score-val.bump{animation:bounce 0.3s ease}
+.score-lbl{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px;margin-top:1px}
+.score-best{font-size:11px;color:var(--accent2);font-weight:700;margin-top:2px}
+.game-controls{display:flex;gap:8px;align-items:center}
+.level-badge{display:flex;align-items:center;gap:4px;background:linear-gradient(135deg,var(--primary),var(--primary-dark));border-radius:50px;padding:4px 12px;font-size:12px;font-weight:700;color:#fff}
+.combo-display{display:flex;align-items:center;gap:4px;background:linear-gradient(135deg,#ff6b35,#ff0040);border-radius:50px;padding:4px 12px;font-size:12px;font-weight:900;color:#fff;transition:all 0.3s;opacity:0;transform:scale(0.8)}
+.combo-display.visible{opacity:1;transform:scale(1);animation:pulse 0.5s ease}
+
+/* BOARD */
+.board-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:0 16px;position:relative;min-height:0}
+#board{display:grid;grid-template-columns:repeat(8,var(--cell));grid-template-rows:repeat(8,var(--cell));gap:2px;background:rgba(0,0,0,0.4);border-radius:var(--radius);border:1px solid rgba(108,59,255,0.25);padding:6px;box-shadow:0 0 30px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,255,255,0.05);position:relative;z-index:1;transition:filter 0.2s}
+#board.shake{animation:boardShake 0.4s ease}
+#board.dim{filter:brightness(0.7)}
+.cell{border-radius:4px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.03);position:relative;cursor:default;transition:background 0.15s,transform 0.15s;overflow:hidden}
+.cell::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,0.1),transparent);opacity:0;transition:opacity 0.2s}
+.cell.filled{border-color:transparent}
+.cell.filled::before{opacity:1}
+.cell.highlight{background:rgba(108,59,255,0.3)!important;border-color:rgba(108,59,255,0.5)!important;transform:scale(0.95)}
+.cell.invalid{background:rgba(255,60,60,0.25)!important;border-color:rgba(255,60,60,0.4)!important}
+.cell.clearing{animation:cellClear 0.4s var(--anim) forwards}
+.cell.placing{animation:cellPlace 0.2s var(--anim) forwards}
+.cell.bomb-cell{animation:pulse 1s ease-in-out infinite}
+.cell.rainbow-cell{animation:rainbowShift 2s linear infinite}
+/* Cell inner shine */
+.cell.filled::after{content:'';position:absolute;top:0;left:0;right:0;height:40%;background:linear-gradient(rgba(255,255,255,0.25),transparent);border-radius:4px 4px 0 0;pointer-events:none}
+
+/* PIECES PANEL */
+.pieces-panel{flex-shrink:0;width:100%;padding:10px 16px 16px;display:flex;flex-direction:column;gap:8px}
+.boosters-row{display:flex;gap:8px;justify-content:center}
+.booster-btn{display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius-sm);padding:8px 12px;cursor:pointer;transition:all 0.2s var(--anim);min-width:60px;position:relative}
+.booster-btn:hover{transform:translateY(-2px);border-color:var(--accent2)}
+.booster-btn:active{transform:scale(0.9)}
+.booster-btn .b-icon{font-size:20px}
+.booster-btn .b-label{font-size:10px;color:var(--text-dim);font-weight:600}
+.booster-btn .b-count{position:absolute;top:4px;right:4px;background:var(--accent);color:#fff;font-size:10px;font-weight:900;border-radius:50%;width:16px;height:16px;display:flex;align-items:center;justify-content:center}
+.booster-btn.active-booster{border-color:var(--accent2);background:rgba(255,215,0,0.1);animation:pulse 1s ease-in-out infinite}
+.pieces-row{display:flex;gap:12px;align-items:flex-end;justify-content:center}
+.piece-slot{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;flex:1;max-width:100px;height:100px;cursor:grab;transition:all 0.25s var(--anim);position:relative;border-radius:var(--radius-sm);padding:8px}
+.piece-slot.used{opacity:0.2;pointer-events:none;filter:grayscale(1)}
+.piece-slot:not(.used):hover{transform:translateY(-5px) scale(1.05)}
+.piece-slot:not(.used):active{cursor:grabbing}
+.piece-slot.dragging{opacity:0.3;transform:scale(0.8)}
+.piece-slot.selected-piece{background:rgba(108,59,255,0.15);border:1px solid var(--primary)}
+.piece-grid{display:grid;gap:2px;pointer-events:none}
+.pc{width:var(--piece-cell);height:var(--piece-cell);border-radius:3px;position:relative;overflow:hidden}
+.pc::after{content:'';position:absolute;top:0;left:0;right:0;height:35%;background:rgba(255,255,255,0.2);border-radius:3px 3px 0 0}
+.ghost{background:rgba(108,59,255,0.2)!important;border:2px dashed rgba(108,59,255,0.5)!important}
+.ghost::after{display:none}
+
+/* DRAG PREVIEW */
+#drag-preview{position:fixed;pointer-events:none;z-index:9999;opacity:0.9;transform:translate(-50%,-50%) scale(1.1);display:none}
+#drag-preview .piece-grid .pc{width:calc(var(--cell) - 2px);height:calc(var(--cell) - 2px)}
+
+/* ===================== FLOATING TEXTS ===================== */
+.float-text{position:absolute;font-family:var(--font-game);font-weight:900;pointer-events:none;z-index:100;animation:floatUp 1s ease forwards;text-shadow:0 2px 8px rgba(0,0,0,0.8)}
+.float-score{color:#ffd700;font-size:20px}
+.float-combo{color:#ff6b35;font-size:28px}
+.combo-banner{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:var(--font-game);font-size:42px;font-weight:900;color:#ffd700;text-shadow:0 0 20px rgba(255,215,0,0.8),0 4px 8px rgba(0,0,0,0.8);animation:comboText 1.2s ease forwards;pointer-events:none;white-space:nowrap;z-index:200}
+.particles-container{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:50}
+.particle{position:absolute;border-radius:50%;pointer-events:none;animation:particleBurst 0.8s ease forwards}
+
+/* ===================== PROGRESS BAR ===================== */
+.xp-bar-wrap{width:100%;padding:0 16px;flex-shrink:0}
+.xp-bar{height:6px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden;position:relative}
+.xp-fill{height:100%;background:linear-gradient(90deg,var(--primary),var(--accent3));border-radius:3px;transition:width 0.5s ease;box-shadow:0 0 8px var(--primary)}
+
+/* ===================== OVERLAYS ===================== */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:500;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);opacity:0;pointer-events:none;transition:opacity 0.3s}
+.overlay.active{opacity:1;pointer-events:all}
+.modal{background:linear-gradient(135deg,var(--bg-mid),var(--bg-dark));border:1px solid var(--card-border);border-radius:24px;padding:28px 24px;width:90%;max-width:380px;max-height:85vh;overflow-y:auto;position:relative;animation:popIn 0.35s var(--anim)}
+.modal-close{position:absolute;top:12px;right:12px;background:rgba(255,255,255,0.08);border:none;color:#fff;font-size:18px;cursor:pointer;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;transition:all 0.2s}
+.modal-close:hover{background:rgba(255,255,255,0.15);transform:rotate(90deg)}
+.modal h2{font-family:var(--font-game);font-size:22px;font-weight:700;color:#fff;margin-bottom:16px;text-align:center}
+.modal-subtitle{font-size:13px;color:var(--text-dim);text-align:center;margin-bottom:20px;margin-top:-10px}
+
+/* ===================== GAME OVER SCREEN ===================== */
+#screen-gameover{background:transparent}
+#screen-gameover .screen-bg{background:linear-gradient(180deg,rgba(0,0,0,0.95) 0%,rgba(20,5,40,0.98) 100%)}
+.gameover-content{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:24px;gap:20px}
+.go-icon{font-size:80px;animation:popIn 0.5s var(--anim)}
+.go-title{font-family:var(--font-game);font-size:36px;font-weight:900;background:linear-gradient(135deg,#ff4444,#ff0000);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:slideDown 0.5s var(--anim) 0.1s both}
+.go-score-card{background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);padding:20px 32px;text-align:center;width:100%;max-width:320px;animation:slideUp 0.5s var(--anim) 0.2s both}
+.go-score-num{font-family:var(--font-game);font-size:48px;font-weight:900;color:#ffd700;line-height:1}
+.go-score-lbl{font-size:13px;color:var(--text-muted);text-transform:uppercase;letter-spacing:2px}
+.go-best{font-size:14px;color:var(--accent3);margin-top:8px;font-weight:700}
+.go-new-record{font-family:var(--font-game);font-size:16px;color:#ffd700;animation:pulse 1s ease-in-out infinite;margin-top:6px}
+.go-stats{display:flex;gap:12px;width:100%;max-width:320px;animation:slideUp 0.5s var(--anim) 0.3s both}
+.go-stat{flex:1;background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius-sm);padding:12px 8px;text-align:center}
+.go-stat-val{font-family:var(--font-game);font-size:18px;font-weight:700;color:#fff}
+.go-stat-lbl{font-size:10px;color:var(--text-muted);text-transform:uppercase;margin-top:2px}
+.go-actions{display:flex;flex-direction:column;gap:10px;width:100%;max-width:320px;animation:slideUp 0.5s var(--anim) 0.4s both}
+.go-reward{display:flex;align-items:center;gap:10px;background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.2);border-radius:var(--radius-sm);padding:12px;font-size:13px;color:var(--text-dim)}
+.go-reward-val{font-weight:700;color:#ffd700}
+
+/* ===================== SHOP / STORE ===================== */
+#screen-shop{}
+.shop-tabs{display:flex;width:100%;border-bottom:1px solid var(--card-border);padding:0 16px;gap:4px;flex-shrink:0}
+.shop-tab{flex:1;padding:12px 8px;font-size:12px;font-weight:700;color:var(--text-muted);text-align:center;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.2s;text-transform:uppercase;letter-spacing:0.5px}
+.shop-tab.active{color:var(--primary-light);border-bottom-color:var(--primary)}
+.shop-content{flex:1;overflow-y:auto;padding:16px;width:100%;scrollbar-width:none}
+.shop-content::-webkit-scrollbar{display:none}
+.shop-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.shop-item{background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);padding:16px;display:flex;flex-direction:column;align-items:center;gap:10px;cursor:pointer;transition:all 0.2s var(--anim);position:relative}
+.shop-item:hover{transform:translateY(-3px);border-color:var(--primary)}
+.shop-item.owned{border-color:var(--accent4);pointer-events:none}
+.shop-item.active-item{border-color:var(--accent2)}
+.shop-item .item-icon{font-size:40px;line-height:1}
+.shop-item .item-name{font-size:13px;font-weight:700;color:#fff;text-align:center}
+.shop-item .item-price{display:flex;align-items:center;gap:4px;font-size:13px;font-weight:700;color:#ffd700}
+.shop-item .item-price .icon{font-size:14px}
+.shop-item .owned-badge{position:absolute;top:8px;right:8px;background:var(--accent4);color:#000;font-size:9px;font-weight:900;border-radius:50px;padding:2px 8px}
+.shop-item .active-badge{position:absolute;top:8px;right:8px;background:var(--accent2);color:#000;font-size:9px;font-weight:900;border-radius:50px;padding:2px 8px}
+.shop-section-title{font-family:var(--font-game);font-size:14px;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;margin-top:6px}
+.booster-shop-item{background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);padding:16px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:all 0.2s;margin-bottom:10px}
+.booster-shop-item:hover{border-color:var(--primary);transform:translateX(3px)}
+.booster-shop-item .b-icon{font-size:32px;flex-shrink:0;width:48px;text-align:center}
+.booster-shop-item .b-info{flex:1}
+.booster-shop-item .b-name{font-size:15px;font-weight:700;color:#fff}
+.booster-shop-item .b-desc{font-size:12px;color:var(--text-muted);margin-top:2px}
+.booster-shop-item .b-buy{display:flex;align-items:center;gap:4px;background:rgba(255,215,0,0.1);border:1px solid rgba(255,215,0,0.2);border-radius:50px;padding:6px 12px;font-size:13px;font-weight:700;color:#ffd700;flex-shrink:0}
+
+/* ===================== MISSIONS ===================== */
+.mission-item{background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);padding:14px;margin-bottom:10px;transition:all 0.2s}
+.mission-item.completed{border-color:var(--accent4);opacity:0.7}
+.mission-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.mission-icon{font-size:28px;flex-shrink:0}
+.mission-info{flex:1}
+.mission-name{font-size:14px;font-weight:700;color:#fff}
+.mission-desc{font-size:12px;color:var(--text-muted);margin-top:2px}
+.mission-reward{display:flex;align-items:center;gap:4px;font-size:12px;color:#ffd700;font-weight:700;margin-top:2px}
+.mission-progress{height:8px;background:rgba(255,255,255,0.08);border-radius:4px;overflow:hidden}
+.mission-fill{height:100%;background:linear-gradient(90deg,var(--primary),var(--accent3));border-radius:4px;transition:width 0.5s ease}
+.mission-pct{font-size:11px;color:var(--text-muted);margin-top:4px;text-align:right}
+.mission-claim-btn{margin-top:10px;width:100%;padding:8px;font-size:13px;background:linear-gradient(135deg,var(--accent4),#00b300);color:#000;font-weight:900;border:none;border-radius:var(--radius-sm);cursor:pointer;transition:all 0.2s}
+.mission-claim-btn:active{transform:scale(0.95)}
+
+/* ===================== ACHIEVEMENTS ===================== */
+.achievement-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ach-item{background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius-sm);padding:14px;text-align:center;transition:all 0.2s}
+.ach-item.unlocked{border-color:var(--accent2);background:rgba(255,215,0,0.05)}
+.ach-item.locked{opacity:0.5;filter:grayscale(0.7)}
+.ach-icon{font-size:32px;margin-bottom:8px}
+.ach-name{font-size:12px;font-weight:700;color:#fff}
+.ach-desc{font-size:11px;color:var(--text-muted);margin-top:3px}
+.ach-reward{font-size:11px;color:#ffd700;margin-top:4px;font-weight:700}
+
+/* ===================== DAILY REWARD ===================== */
+.daily-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:16px 0}
+.daily-day{background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius-sm);padding:8px 4px;text-align:center;position:relative;transition:all 0.2s}
+.daily-day.claimed{border-color:var(--accent4);background:rgba(57,255,20,0.05)}
+.daily-day.today{border-color:var(--accent2);background:rgba(255,215,0,0.08);animation:glow 2s ease-in-out infinite}
+.daily-day.locked{opacity:0.4}
+.daily-day .d-num{font-size:10px;color:var(--text-muted);margin-bottom:4px}
+.daily-day .d-icon{font-size:20px;line-height:1}
+.daily-day .d-val{font-size:10px;color:#ffd700;font-weight:700;margin-top:3px}
+.daily-day .check{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(57,255,20,0.2);border-radius:var(--radius-sm);font-size:20px}
+
+/* ===================== LUCKY SPIN ===================== */
+.spin-wheel-wrap{position:relative;width:280px;height:280px;margin:0 auto}
+#spin-canvas{border-radius:50%;box-shadow:0 0 30px rgba(108,59,255,0.5)}
+.spin-pointer{position:absolute;top:-12px;left:50%;transform:translateX(-50%);font-size:28px;filter:drop-shadow(0 0 8px rgba(255,215,0,0.8))}
+.spin-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:linear-gradient(135deg,#ffd700,#ff9500);border-radius:50%;width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:#000;box-shadow:0 0 20px rgba(255,215,0,0.6);cursor:pointer;z-index:10}
+.spin-info{text-align:center;margin-top:16px;font-size:13px;color:var(--text-dim)}
+
+/* ===================== CHEST ===================== */
+.chest-container{display:flex;justify-content:center;gap:16px;margin:16px 0}
+.chest-item{display:flex;flex-direction:column;align-items:center;gap:8px;background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);padding:16px;cursor:pointer;transition:all 0.2s var(--anim);flex:1;max-width:130px}
+.chest-item:hover{transform:translateY(-4px);border-color:var(--accent2)}
+.chest-item:active{transform:scale(0.93)}
+.chest-icon{font-size:48px;animation:chestRock 3s ease-in-out infinite}
+.chest-name{font-size:13px;font-weight:700;color:#fff}
+.chest-cost{display:flex;align-items:center;gap:4px;font-size:12px;color:#ffd700;font-weight:700}
+.chest-rarity{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+
+/* ===================== REWARD ANIMATION ===================== */
+#reward-overlay{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.8);backdrop-filter:blur(10px);opacity:0;pointer-events:none;transition:opacity 0.3s}
+#reward-overlay.show{opacity:1;pointer-events:all}
+.reward-box{background:linear-gradient(135deg,var(--bg-mid),var(--bg-dark));border:2px solid var(--accent2);border-radius:24px;padding:32px 24px;text-align:center;max-width:320px;width:90%;animation:rewardPop 0.5s var(--anim) both;position:relative;overflow:hidden}
+.reward-box::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,215,0,0.08),transparent);pointer-events:none}
+.reward-icon{font-size:72px;margin-bottom:12px;display:block;animation:bounce 0.8s ease 0.3s}
+.reward-title{font-family:var(--font-game);font-size:22px;font-weight:700;color:#ffd700;margin-bottom:8px}
+.reward-desc{font-size:14px;color:var(--text-dim);margin-bottom:20px}
+.reward-amount{font-family:var(--font-game);font-size:40px;font-weight:900;color:#ffd700;margin-bottom:20px;text-shadow:0 0 20px rgba(255,215,0,0.6)}
+.reward-stars{display:flex;justify-content:center;gap:4px;margin-bottom:16px;font-size:28px}
+
+/* ===================== SETTINGS ===================== */
+.settings-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid rgba(255,255,255,0.05)}
+.settings-row:last-child{border-bottom:none}
+.setting-label{font-size:15px;font-weight:600;color:#fff}
+.setting-sub{font-size:12px;color:var(--text-muted);margin-top:2px}
+.toggle{width:48px;height:26px;background:rgba(255,255,255,0.15);border-radius:13px;cursor:pointer;position:relative;transition:background 0.3s;flex-shrink:0}
+.toggle.on{background:var(--primary)}
+.toggle::after{content:'';position:absolute;width:20px;height:20px;background:#fff;border-radius:50%;top:3px;left:3px;transition:transform 0.3s var(--anim);box-shadow:0 2px 6px rgba(0,0,0,0.3)}
+.toggle.on::after{transform:translateX(22px)}
+
+/* ===================== SCREEN-SPECIFIC HEADERS ===================== */
+.screen-header{display:flex;align-items:center;padding:14px 16px;width:100%;flex-shrink:0;border-bottom:1px solid var(--card-border);gap:12px}
+.screen-header h1{font-family:var(--font-game);font-size:18px;font-weight:700;flex:1;text-align:center}
+.header-back{background:none;border:none;color:var(--text);font-size:22px;cursor:pointer;padding:4px;transition:all 0.2s;margin-right:4px}
+.header-back:hover{color:var(--primary-light);transform:translateX(-2px)}
+
+/* ===================== SCROLLABLE CONTENT ===================== */
+.scroll-content{flex:1;overflow-y:auto;width:100%;padding:16px;scrollbar-width:none}
+.scroll-content::-webkit-scrollbar{display:none}
+
+/* ===================== THEME PREVIEWS ===================== */
+.theme-preview{width:100%;height:60px;border-radius:var(--radius-sm);margin-bottom:8px;position:relative;overflow:hidden}
+.theme-preview-cells{display:grid;grid-template-columns:repeat(5,1fr);grid-template-rows:repeat(3,1fr);gap:2px;height:100%;padding:4px}
+.tp-cell{border-radius:2px;opacity:0.8}
+
+/* ===================== TOAST ===================== */
+#toast-container{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:99999;display:flex;flex-direction:column;gap:8px;pointer-events:none;max-width:340px;width:90%}
+.toast{background:rgba(30,30,50,0.95);border:1px solid var(--card-border);border-radius:var(--radius-sm);padding:12px 16px;font-size:13px;font-weight:600;color:#fff;backdrop-filter:blur(10px);animation:slideDown 0.3s var(--anim),toastFade 0.3s ease 2.7s forwards;display:flex;align-items:center;gap:8px;box-shadow:var(--shadow)}
+@keyframes toastFade{to{opacity:0;transform:translateY(-10px)}}
+.toast-icon{font-size:18px}
+.toast.success{border-color:rgba(57,255,20,0.3)}
+.toast.error{border-color:rgba(255,60,60,0.3)}
+.toast.info{border-color:rgba(0,229,255,0.3)}
+.toast.gold{border-color:rgba(255,215,0,0.4)}
+
+/* ===================== LEVEL UP BANNER ===================== */
+#levelup-banner{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:9998;pointer-events:none;opacity:0;transition:opacity 0.3s}
+#levelup-banner.show{opacity:1}
+.levelup-content{background:linear-gradient(135deg,rgba(108,59,255,0.95),rgba(74,31,232,0.95));border:2px solid var(--accent2);border-radius:24px;padding:24px 40px;text-align:center;backdrop-filter:blur(10px);animation:popIn 0.5s var(--anim)}
+.lu-label{font-size:13px;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:2px}
+.lu-level{font-family:var(--font-game);font-size:56px;font-weight:900;color:#ffd700;line-height:1}
+.lu-text{font-size:16px;color:#fff;margin-top:4px}
+
+/* ===================== NO MOVES WARNING ===================== */
+.no-moves-hint{text-align:center;font-size:12px;color:rgba(255,100,100,0.8);animation:pulse 1s ease-in-out infinite;padding:4px 0}
+
+/* scrollbar */
+*{scrollbar-width:thin;scrollbar-color:var(--card-border) transparent}
+*::-webkit-scrollbar{width:4px}
+*::-webkit-scrollbar-track{background:transparent}
+*::-webkit-scrollbar-thumb{background:var(--card-border);border-radius:2px}
+</style>
+</head>
+<body>
+<canvas id="particles-canvas"></canvas>
+<div id="app">
+  <!-- TOAST -->
+  <div id="toast-container"></div>
+  <!-- LEVEL UP BANNER -->
+  <div id="levelup-banner"><div class="levelup-content"><div class="lu-label">Level Up!</div><div class="lu-level" id="lu-num">2</div><div class="lu-text">🎉 Yeni seviyeye ulaştın!</div></div></div>
+  <!-- REWARD OVERLAY -->
+  <div id="reward-overlay">
+    <div class="reward-box">
+      <span class="reward-icon" id="reward-icon">🎁</span>
+      <div class="reward-title" id="reward-title">Ödül!</div>
+      <div class="reward-desc" id="reward-desc"></div>
+      <div class="reward-amount" id="reward-amount"></div>
+      <div class="reward-stars" id="reward-stars"></div>
+      <button class="btn btn-gold btn-wide" onclick="closeReward()">Harika! ✨</button>
+    </div>
+  </div>
+  <!-- DRAG PREVIEW -->
+  <div id="drag-preview"><div class="piece-grid" id="preview-grid"></div></div>
+  <!-- PARTICLES -->
+  <div id="board-particles" class="particles-container"></div>
+
+  <!-- ==================== MAIN MENU ==================== -->
+  <div class="screen active" id="screen-menu">
+    <div class="screen-bg"></div>
+    <div class="screen-content">
+      <div class="top-bar">
+        <div class="currency-group">
+          <div class="currency-pill"><span class="icon">🪙</span><span id="menu-coins">0</span></div>
+          <div class="currency-pill gems"><span class="icon">💎</span><span id="menu-gems">5</span></div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-icon" onclick="showScreen('screen-settings')">⚙️</button>
+        </div>
+      </div>
+      <div class="menu-logo">
+        <div class="logo-title">BLOCK BLAST</div>
+        <div class="logo-sub">Adventure Master</div>
+      </div>
+      <div class="menu-hero">
+        <div class="menu-board-preview" id="menu-preview"></div>
+        <div class="menu-stats">
+          <div class="stat-badge"><div class="stat-val" id="menu-best-score">0</div><div class="stat-lbl">En Yüksek</div></div>
+          <div class="stat-badge"><div class="stat-val" id="menu-level">1</div><div class="stat-lbl">Seviye</div></div>
+          <div class="stat-badge"><div class="stat-val" id="menu-streak">0</div><div class="stat-lbl">Seri</div></div>
+        </div>
+      </div>
+      <div class="menu-actions">
+        <button class="btn btn-primary btn-wide" style="font-size:19px;padding:18px" onclick="startGame()">🎮 OYNA</button>
+        <div class="menu-icon-row">
+          <div class="menu-icon-btn" onclick="showScreen('screen-shop')"><span>🛒</span><span>Mağaza</span></div>
+          <div class="menu-icon-btn" style="position:relative" onclick="showDailyReward()"><span>📦</span><span>Günlük</span><div class="daily-badge" id="daily-badge" style="display:none">!</div></div>
+          <div class="menu-icon-btn" onclick="showScreen('screen-missions')"><span>📋</span><span>Görevler</span></div>
+          <div class="menu-icon-btn" onclick="showScreen('screen-achievements')"><span>🏆</span><span>Başarılar</span></div>
+          <div class="menu-icon-btn" onclick="showLuckySpin()"><span>🎰</span><span>Çevirim</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== GAME SCREEN ==================== -->
+  <div class="screen" id="screen-game">
+    <div class="screen-bg" style="opacity:0.3"></div>
+    <div class="screen-content" style="height:100%">
+      <div class="game-top-bar">
+        <button class="btn btn-icon" style="font-size:16px" onclick="pauseGame()">⏸</button>
+        <div style="text-align:center;flex:1">
+          <div class="combo-display" id="combo-display">🔥 <span id="combo-count">2</span>x COMBO!</div>
+        </div>
+        <div class="score-display">
+          <div class="score-val" id="score-val">0</div>
+          <div class="score-lbl">Skor</div>
+          <div class="score-best" id="score-best-game">En: 0</div>
+        </div>
+      </div>
+      <div class="xp-bar-wrap">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <div class="level-badge">⚡ Seviye <span id="game-level">1</span></div>
+          <span style="font-size:11px;color:var(--text-muted)"><span id="xp-cur">0</span>/<span id="xp-max">100</span> XP</span>
+        </div>
+        <div class="xp-bar"><div class="xp-fill" id="xp-fill" style="width:0%"></div></div>
+      </div>
+      <div class="board-wrap" id="board-wrap">
+        <div id="board"></div>
+      </div>
+      <div class="pieces-panel">
+        <div class="boosters-row">
+          <div class="booster-btn" id="b-rowblast" onclick="activateBooster('rowblast')"><div class="b-icon">💥</div><div class="b-label">Satır Sil</div><div class="b-count" id="b-rowblast-count">0</div></div>
+          <div class="booster-btn" id="b-bomb" onclick="activateBooster('bomb')"><div class="b-icon">💣</div><div class="b-label">Bomba</div><div class="b-count" id="b-bomb-count">0</div></div>
+          <div class="booster-btn" id="b-shuffle" onclick="activateBooster('shuffle')"><div class="b-icon">🔀</div><div class="b-label">Karıştır</div><div class="b-count" id="b-shuffle-count">0</div></div>
+          <div class="booster-btn" id="b-extra" onclick="activateBooster('extra')"><div class="b-icon">⭐</div><div class="b-label">Ekstra Şans</div><div class="b-count" id="b-extra-count">0</div></div>
+        </div>
+        <div class="pieces-row" id="pieces-row">
+          <div class="piece-slot" id="slot-0" data-slot="0"></div>
+          <div class="piece-slot" id="slot-1" data-slot="1"></div>
+          <div class="piece-slot" id="slot-2" data-slot="2"></div>
+        </div>
+        <div class="no-moves-hint" id="no-moves-hint" style="display:none">⚠️ Hareket kalmadı! Booster kullan veya oyun bitti.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== GAME OVER ==================== -->
+  <div class="screen" id="screen-gameover">
+    <div class="screen-bg"></div>
+    <div class="gameover-content">
+      <div class="go-icon" id="go-icon">💀</div>
+      <div class="go-title">GAME OVER</div>
+      <div class="go-score-card">
+        <div class="go-score-num" id="go-score">0</div>
+        <div class="go-score-lbl">Toplam Skor</div>
+        <div class="go-best" id="go-best">En Yüksek: 0</div>
+        <div class="go-new-record" id="go-new-record" style="display:none">🏆 YENİ REKOR!</div>
+      </div>
+      <div class="go-stats">
+        <div class="go-stat"><div class="go-stat-val" id="go-lines">0</div><div class="go-stat-lbl">Satır</div></div>
+        <div class="go-stat"><div class="go-stat-val" id="go-combos">0</div><div class="go-stat-lbl">Combo</div></div>
+        <div class="go-stat"><div class="go-stat-val" id="go-blocks">0</div><div class="go-stat-lbl">Blok</div></div>
+      </div>
+      <div class="go-reward">
+        <span style="font-size:20px">🪙</span>
+        <span>Kazandın: <span class="go-reward-val" id="go-coin-reward">0</span> Coin</span>
+      </div>
+      <div class="go-actions">
+        <button class="btn btn-primary btn-wide" style="font-size:17px" onclick="startGame()">🔄 Tekrar Oyna</button>
+        <button class="btn btn-glass btn-wide" onclick="showScreen('screen-menu')">🏠 Ana Menü</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== SHOP ==================== -->
+  <div class="screen" id="screen-shop">
+    <div class="screen-bg" style="opacity:0.4"></div>
+    <div class="screen-content">
+      <div class="screen-header">
+        <button class="header-back" onclick="showScreen('screen-menu')">←</button>
+        <h1>🛒 Mağaza</h1>
+        <div class="currency-pill"><span class="icon">🪙</span><span id="shop-coins">0</span></div>
+      </div>
+      <div class="shop-tabs">
+        <div class="shop-tab active" onclick="switchShopTab('themes',this)">Temalar</div>
+        <div class="shop-tab" onclick="switchShopTab('skins',this)">Skinler</div>
+        <div class="shop-tab" onclick="switchShopTab('boosters',this)">Boosterlar</div>
+        <div class="shop-tab" onclick="switchShopTab('chests',this)">Sandıklar</div>
+      </div>
+      <div class="shop-content" id="shop-content"></div>
+    </div>
+  </div>
+
+  <!-- ==================== MISSIONS ==================== -->
+  <div class="screen" id="screen-missions">
+    <div class="screen-bg" style="opacity:0.4"></div>
+    <div class="screen-content">
+      <div class="screen-header">
+        <button class="header-back" onclick="showScreen('screen-menu')">←</button>
+        <h1>📋 Görevler</h1>
+      </div>
+      <div class="scroll-content" id="missions-content"></div>
+    </div>
+  </div>
+
+  <!-- ==================== ACHIEVEMENTS ==================== -->
+  <div class="screen" id="screen-achievements">
+    <div class="screen-bg" style="opacity:0.4"></div>
+    <div class="screen-content">
+      <div class="screen-header">
+        <button class="header-back" onclick="showScreen('screen-menu')">←</button>
+        <h1>🏆 Başarılar</h1>
+      </div>
+      <div class="scroll-content" id="achievements-content"></div>
+    </div>
+  </div>
+
+  <!-- ==================== SETTINGS ==================== -->
+  <div class="screen" id="screen-settings">
+    <div class="screen-bg" style="opacity:0.4"></div>
+    <div class="screen-content">
+      <div class="screen-header">
+        <button class="header-back" onclick="showScreen('screen-menu')">←</button>
+        <h1>⚙️ Ayarlar</h1>
+      </div>
+      <div class="scroll-content">
+        <div class="card" style="margin-bottom:12px">
+          <div class="settings-row">
+            <div><div class="setting-label">Ses Efektleri</div><div class="setting-sub">Oyun sesleri</div></div>
+            <div class="toggle on" id="toggle-sound" onclick="toggleSetting('sound',this)"></div>
+          </div>
+          <div class="settings-row">
+            <div><div class="setting-label">Müzik</div><div class="setting-sub">Arka plan müziği</div></div>
+            <div class="toggle" id="toggle-music" onclick="toggleSetting('music',this)"></div>
+          </div>
+          <div class="settings-row">
+            <div><div class="setting-label">Titreşim</div><div class="setting-sub">Dokunmatik geri bildirim</div></div>
+            <div class="toggle on" id="toggle-vibration" onclick="toggleSetting('vibration',this)"></div>
+          </div>
+          <div class="settings-row">
+            <div><div class="setting-label">Parçacık Efektleri</div><div class="setting-sub">Patlama animasyonları</div></div>
+            <div class="toggle on" id="toggle-particles" onclick="toggleSetting('particles',this)"></div>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:12px">
+          <div class="settings-row">
+            <div><div class="setting-label">Zorluk</div></div>
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-sm btn-glass" id="diff-easy" onclick="setDifficulty('easy',this)">Kolay</button>
+              <button class="btn btn-sm btn-primary" id="diff-normal" onclick="setDifficulty('normal',this)" style="opacity:1">Normal</button>
+              <button class="btn btn-sm btn-glass" id="diff-hard" onclick="setDifficulty('hard',this)">Zor</button>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="settings-row">
+            <div><div class="setting-label">Tüm Verileri Sıfırla</div><div class="setting-sub">Skor ve ilerlemeler silinir</div></div>
+            <button class="btn btn-sm" style="background:rgba(255,60,60,0.2);color:#ff4444;border:1px solid rgba(255,60,60,0.3);border-radius:8px;padding:8px 14px;font-size:12px;cursor:pointer" onclick="resetAllData()">Sıfırla</button>
+          </div>
+          <div class="settings-row" style="border:none">
+            <div><div class="setting-label">Versiyon</div></div>
+            <div style="color:var(--text-muted);font-size:13px">v2.1.0</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== PAUSE OVERLAY ==================== -->
+  <div class="overlay" id="pause-overlay">
+    <div class="modal" style="text-align:center">
+      <h2>⏸ Duraklatıldı</h2>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px">
+        <button class="btn btn-primary btn-wide" onclick="resumeGame()">▶ Devam Et</button>
+        <button class="btn btn-glass btn-wide" onclick="restartGame()">🔄 Yeniden Başlat</button>
+        <button class="btn btn-glass btn-wide" onclick="quitToMenu()">🏠 Ana Menü</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== DAILY REWARD OVERLAY ==================== -->
+  <div class="overlay" id="daily-overlay">
+    <div class="modal">
+      <button class="modal-close" onclick="closeDailyReward()">✕</button>
+      <h2>📦 Günlük Ödül</h2>
+      <p class="modal-subtitle">Her gün giriş yap, ödüller kazan!</p>
+      <div class="daily-grid" id="daily-grid"></div>
+      <button class="btn btn-gold btn-wide" id="daily-claim-btn" onclick="claimDailyReward()">Bugünkü Ödülü Al!</button>
+    </div>
+  </div>
+
+  <!-- ==================== LUCKY SPIN OVERLAY ==================== -->
+  <div class="overlay" id="spin-overlay">
+    <div class="modal" style="text-align:center">
+      <button class="modal-close" onclick="closeOverlay('spin-overlay')">✕</button>
+      <h2>🎰 Şanslı Çevirim</h2>
+      <div class="spin-wheel-wrap">
+        <div class="spin-pointer">▼</div>
+        <canvas id="spin-canvas" width="280" height="280"></canvas>
+        <div class="spin-center" id="spin-btn" onclick="doSpin()">SPIN</div>
+      </div>
+      <div class="spin-info">
+        <div id="spin-cost-info">Çevirmek için: <b style="color:#ffd700">50 🪙</b> veya <b style="color:#00e5ff">1 💎</b></div>
+        <div style="margin-top:6px;font-size:11px;color:var(--text-muted)" id="spin-free-info"></div>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:center;margin-top:14px">
+        <button class="btn btn-gold" onclick="doSpin('coin')">🪙 50 Coin</button>
+        <button class="btn btn-glass" style="color:#00e5ff;border-color:rgba(0,229,255,0.3)" onclick="doSpin('gem')">💎 1 Gem</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+// ===================== GAME STATE =====================
+const STATE = {
+  coins: 0, gems: 5, level: 1, xp: 0, xpMax: 100,
+  bestScore: 0, totalGames: 0, totalLines: 0, totalBlocks: 0, totalCombos: 0,
+  streak: 0, lastPlayDate: null, dailyDay: 0, lastDailyDate: null,
+  settings: {sound:true,music:false,vibration:true,particles:true,difficulty:'normal'},
+  boosters: {rowblast:1, bomb:1, shuffle:2, extra:1},
+  ownedThemes: ['default'], activeTheme: 'default',
+  ownedSkins: ['default'], activeSkin: 'default',
+  missions: [], achievements: {},
+  spinFreeDate: null,
+  unlockedAchievements: []
+};
+let GAME = {
+  board: [], pieces: [], score: 0, combo: 0, maxCombo: 0,
+  linesCleared: 0, blocksPlaced: 0, combosTriggered: 0,
+  active: false, paused: false, gameOver: false,
+  dragPiece: null, dragSlot: -1, ghostCells: [],
+  selectedBooster: null, touchStartX: 0, touchStartY: 0,
+  animating: false
+};
+const BOARD_SIZE = 8;
+// ===================== COLORS & THEMES =====================
+const THEMES = {
+  default:{name:'Klasik',colors:['#6c3bff','#ff6b35','#00e5ff','#39ff14','#ffd700','#ff1493','#ff4d4d','#7fff00'],bg:'#0d0d1a'},
+  neon:{name:'Neon Şehir',colors:['#ff00ff','#00ffff','#ff0099','#00ff88','#ffee00','#ff3300','#00ccff','#ff9900'],bg:'#050510'},
+  sunset:{name:'Gün Batımı',colors:['#ff6b35','#ff4d6d','#ffd700','#ff8500','#ff1744','#ffa726','#ff5722','#ffca28'],bg:'#1a0510'},
+  ocean:{name:'Okyanus',colors:['#006994','#00bcd4','#0097a7','#26c6da','#00acc1','#0288d1','#03a9f4','#29b6f6'],bg:'#010d1a'},
+  forest:{name:'Orman',colors:['#2e7d32','#4caf50','#66bb6a','#a5d6a7','#388e3c','#43a047','#1b5e20','#81c784'],bg:'#05100a'},
+  galaxy:{name:'Galaksi',colors:['#9c27b0','#ab47bc','#ce93d8','#7b1fa2','#e040fb','#8e24aa','#d500f9','#ba68c8'],bg:'#0a000f'},
+};
+const SKINS = {
+  default:{name:'Klasik',icon:'🟦',desc:'Düz renkli bloklar'},
+  glossy:{name:'Parlak',icon:'✨',desc:'Cam efektli bloklar'},
+  gem:{name:'Mücevher',icon:'💎',desc:'Elmas görünümlü bloklar'},
+  metal:{name:'Metal',icon:'⚙️',desc:'Metalik bloklar'},
+  fire:{name:'Ateş',icon:'🔥',desc:'Alevli bloklar'},
+  ice:{name:'Buz',icon:'❄️',desc:'Buz kristali bloklar'},
+};
+const PIECE_SHAPES = [
+  {shape:[[1,1],[1,1]],name:'Kare',pts:4},
+  {shape:[[1,1,1],[0,1,0]],name:'T-Blok',pts:4},
+  {shape:[[1,1,1,1]],name:'I-Blok H',pts:4},
+  {shape:[[1],[1],[1],[1]],name:'I-Blok V',pts:4},
+  {shape:[[1,0],[1,0],[1,1]],name:'L-Blok',pts:4},
+  {shape:[[0,1],[0,1],[1,1]],name:'J-Blok',pts:4},
+  {shape:[[1,1,0],[0,1,1]],name:'S-Blok',pts:4},
+  {shape:[[0,1,1],[1,1,0]],name:'Z-Blok',pts:4},
+  {shape:[[1]],name:'1x1',pts:1},
+  {shape:[[1,1]],name:'1x2',pts:2},
+  {shape:[[1],[1]],name:'2x1',pts:2},
+  {shape:[[1,1,1]],name:'1x3',pts:3},
+  {shape:[[1],[1],[1]],name:'3x1',pts:3},
+  {shape:[[1,1],[1,0]],name:'L-Küçük',pts:3},
+  {shape:[[1,0],[1,1]],name:'J-Küçük',pts:3},
+  {shape:[[1,1,1],[1,0,0],[1,0,0]],name:'Köşe-L',pts:5},
+  {shape:[[1,1,1],[0,0,1],[0,0,1]],name:'Köşe-J',pts:5},
+  {shape:[[1,1,1],[1,1,1]],name:'2x3',pts:6},
+  {shape:[[1,1],[1,1],[1,1]],name:'3x2',pts:6},
+  {shape:[[1,0,0],[1,1,0],[0,1,1]],name:'S-Büyük',pts:5},
+];
+const SPECIAL_PIECES = [
+  {shape:[[1,1],[1,1]],name:'Bomba',special:'bomb',pts:8,icon:'💣'},
+  {shape:[[1,0,1],[0,1,0],[1,0,1]],name:'Gökkuşağı',special:'rainbow',pts:10,icon:'🌈'},
+];
+// ===================== MISSION DEFS =====================
+const MISSION_DEFS = [
+  {id:'score1k',name:'1000 Skor',desc:'Tek oyunda 1000 puan kazan',icon:'🎯',target:1000,type:'score',reward:{type:'coin',amount:100}},
+  {id:'score5k',name:'5000 Skor',desc:'Tek oyunda 5000 puan kazan',icon:'🏆',target:5000,type:'score',reward:{type:'coin',amount:300}},
+  {id:'lines10',name:'10 Satır',desc:'Toplam 10 satır temizle',icon:'🔥',target:10,type:'lines',reward:{type:'gem',amount:1}},
+  {id:'combo3',name:'3x Combo',desc:'3 combo arka arkaya yap',icon:'⚡',target:3,type:'combo',reward:{type:'coin',amount:150}},
+  {id:'play5',name:'5 Oyun',desc:'5 oyun oyna',icon:'🎮',target:5,type:'games',reward:{type:'coin',amount:200}},
+  {id:'blocks50',name:'50 Blok',desc:'Toplamda 50 blok yerleştir',icon:'🧱',target:50,type:'blocks',reward:{type:'coin',amount:120}},
+];
+// ===================== ACHIEVEMENT DEFS =====================
+const ACHIEVEMENT_DEFS = [
+  {id:'first_game',name:'İlk Oyun',desc:'İlk oyununu oyna',icon:'🎮',reward:50},
+  {id:'score_1k',name:'Bin Ustası',desc:'1000 puana ulaş',icon:'⭐',reward:100},
+  {id:'score_10k',name:'On Bin Savaşçısı',desc:'10000 puana ulaş',icon:'💫',reward:500},
+  {id:'combo_5',name:'Combo Ustası',desc:'5x combo yap',icon:'🔥',reward:200},
+  {id:'lines_50',name:'Satır Avcısı',desc:'50 satır temizle',icon:'💥',reward:300},
+  {id:'level_5',name:'Seviye 5',desc:'5. seviyeye ulaş',icon:'🚀',reward:400},
+  {id:'play_10',name:'Bağımlı',desc:'10 oyun oyna',icon:'🎯',reward:250},
+  {id:'blocks_100',name:'Blok Uzmanı',desc:'100 blok yerleştir',icon:'🧱',reward:150},
+  {id:'streak_3',name:'Seri Yapıcı',desc:'3 gün üst üste oyna',icon:'📅',reward:200},
+  {id:'booster_use',name:'Booster Avcısı',desc:'İlk boosterını kullan',icon:'⚡',reward:75},
+];
+// ===================== DAILY REWARD DATA =====================
+const DAILY_REWARDS = [
+  {icon:'🪙',label:'50 Coin',type:'coin',amount:50},
+  {icon:'🪙',label:'100 Coin',type:'coin',amount:100},
+  {icon:'💎',label:'1 Gem',type:'gem',amount:1},
+  {icon:'🪙',label:'200 Coin',type:'coin',amount:200},
+  {icon:'⚡',label:'Booster',type:'booster',amount:1},
+  {icon:'💎',label:'2 Gem',type:'gem',amount:2},
+  {icon:'🎁',label:'500 Coin',type:'coin',amount:500},
+];
+// ===================== SPIN WHEEL DATA =====================
+const SPIN_PRIZES = [
+  {label:'50 🪙',icon:'🪙',type:'coin',amount:50,color:'#6c3bff'},
+  {label:'100 🪙',icon:'🪙',type:'coin',amount:100,color:'#ff6b35'},
+  {label:'1 💎',icon:'💎',type:'gem',amount:1,color:'#00e5ff'},
+  {label:'200 🪙',icon:'🪙',type:'coin',amount:200,color:'#39ff14'},
+  {label:'Booster',icon:'⚡',type:'booster',amount:1,color:'#ffd700'},
+  {label:'500 🪙',icon:'🪙',type:'coin',amount:500,color:'#ff1493'},
+  {label:'2 💎',icon:'💎',type:'gem',amount:2,color:'#ff4d4d'},
+  {label:'Kaybettin',icon:'😢',type:'nothing',amount:0,color:'#333'},
+];
+// ===================== STORAGE =====================
+function saveState(){try{localStorage.setItem('bba_state',JSON.stringify(STATE))}catch(e){}}
+function loadState(){
+  try{
+    const s=localStorage.getItem('bba_state');
+    if(s){const d=JSON.parse(s);Object.assign(STATE,d);}
+  }catch(e){}
+  initMissions();
+}
+function initMissions(){
+  if(!STATE.missions||STATE.missions.length===0){
+    STATE.missions=MISSION_DEFS.map(m=>({...m,progress:0,completed:false,claimed:false}));
+  } else {
+    MISSION_DEFS.forEach(m=>{
+      if(!STATE.missions.find(x=>x.id===m.id)){
+        STATE.missions.push({...m,progress:0,completed:false,claimed:false});
+      }
+    });
+  }
+}
+// ===================== AUDIO =====================
+const AC = window.AudioContext ? new AudioContext() : null;
+function playSound(type){
+  if(!STATE.settings.sound||!AC)return;
+  if(AC.state==='suspended')AC.resume();
+  const g=AC.createGain();g.connect(AC.destination);
+  const osc=AC.createOscillator();osc.connect(g);
+  const now=AC.currentTime;
+  switch(type){
+    case'place':osc.frequency.setValueAtTime(440,now);osc.frequency.exponentialRampToValueAtTime(600,now+0.1);g.gain.setValueAtTime(0.15,now);g.gain.exponentialRampToValueAtTime(0.001,now+0.15);osc.type='sine';break;
+    case'clear':osc.frequency.setValueAtTime(600,now);osc.frequency.exponentialRampToValueAtTime(1200,now+0.2);g.gain.setValueAtTime(0.2,now);g.gain.exponentialRampToValueAtTime(0.001,now+0.3);osc.type='triangle';break;
+    case'combo':osc.frequency.setValueAtTime(800,now);osc.frequency.exponentialRampToValueAtTime(1600,now+0.3);g.gain.setValueAtTime(0.25,now);g.gain.exponentialRampToValueAtTime(0.001,now+0.4);osc.type='sawtooth';break;
+    case'gameover':osc.frequency.setValueAtTime(300,now);osc.frequency.exponentialRampToValueAtTime(80,now+0.5);g.gain.setValueAtTime(0.3,now);g.gain.exponentialRampToValueAtTime(0.001,now+0.6);osc.type='square';break;
+    case'coin':osc.frequency.setValueAtTime(1000,now);osc.frequency.exponentialRampToValueAtTime(1400,now+0.1);g.gain.setValueAtTime(0.1,now);g.gain.exponentialRampToValueAtTime(0.001,now+0.15);osc.type='sine';break;
+    case'levelup':for(let i=0;i<4;i++){const o2=AC.createOscillator();const g2=AC.createGain();o2.connect(g2);g2.connect(AC.destination);const n2=now+i*0.12;o2.frequency.setValueAtTime([523,659,784,1047][i],n2);g2.gain.setValueAtTime(0.15,n2);g2.gain.exponentialRampToValueAtTime(0.001,n2+0.15);o2.type='sine';o2.start(n2);o2.stop(n2+0.2);}return;
+    case'error':osc.frequency.setValueAtTime(200,now);g.gain.setValueAtTime(0.15,now);g.gain.exponentialRampToValueAtTime(0.001,now+0.2);osc.type='square';break;
+  }
+  osc.start(now);osc.stop(now+0.5);
+}
+function vibrate(ms=50){if(STATE.settings.vibration&&navigator.vibrate)navigator.vibrate(ms);}
+
+// ===================== TOAST =====================
+function showToast(msg,type='info',icon='ℹ️'){
+  const tc=document.getElementById('toast-container');
+  const t=document.createElement('div');
+  t.className=`toast ${type}`;
+  t.innerHTML=`<span class="toast-icon">${icon}</span><span>${msg}</span>`;
+  tc.appendChild(t);
+  setTimeout(()=>t.remove(),3200);
+}
+
+// ===================== REWARD OVERLAY =====================
+function showReward(icon,title,desc,amount,stars=3){
+  document.getElementById('reward-icon').textContent=icon;
+  document.getElementById('reward-title').textContent=title;
+  document.getElementById('reward-desc').textContent=desc;
+  document.getElementById('reward-amount').textContent=amount;
+  document.getElementById('reward-stars').innerHTML='⭐'.repeat(stars);
+  document.getElementById('reward-overlay').classList.add('show');
+  spawnConfetti();
+  playSound('coin');
+}
+function closeReward(){document.getElementById('reward-overlay').classList.remove('show');}
+
+// ===================== CONFETTI / PARTICLES =====================
+function spawnConfetti(){
+  const container=document.getElementById('board-particles');
+  const colors=['#ffd700','#ff6b35','#00e5ff','#39ff14','#ff1493','#a78bff'];
+  for(let i=0;i<30;i++){
+    const p=document.createElement('div');
+    const angle=Math.random()*360;
+    const dist=100+Math.random()*200;
+    p.className='particle';
+    p.style.cssText=`width:${6+Math.random()*8}px;height:${6+Math.random()*8}px;background:${colors[Math.floor(Math.random()*colors.length)]};left:${40+Math.random()*20}%;top:${40+Math.random()*20}%;--px:${Math.cos(angle*Math.PI/180)*dist}px;--py:${Math.sin(angle*Math.PI/180)*dist}px;animation-delay:${Math.random()*0.3}s;animation-duration:${0.6+Math.random()*0.6}s`;
+    container.appendChild(p);
+    setTimeout(()=>p.remove(),1200);
+  }
+}
+function spawnCellParticles(row,col){
+  if(!STATE.settings.particles)return;
+  const board=document.getElementById('board');
+  const cellIdx=row*BOARD_SIZE+col;
+  const cells=board.children;
+  if(!cells[cellIdx])return;
+  const rect=cells[cellIdx].getBoundingClientRect();
+  const boardRect=board.getBoundingClientRect();
+  const colors=getThemeColors();
+  for(let i=0;i<8;i++){
+    const p=document.createElement('div');
+    const angle=Math.random()*360;
+    const dist=30+Math.random()*50;
+    p.className='particle';
+    const x=rect.left-boardRect.left+rect.width/2;
+    const y=rect.top-boardRect.top+rect.height/2;
+    p.style.cssText=`width:6px;height:6px;background:${colors[Math.floor(Math.random()*colors.length)]};left:${x}px;top:${y}px;--px:${Math.cos(angle*Math.PI/180)*dist}px;--py:${Math.sin(angle*Math.PI/180)*dist}px;animation-duration:${0.5+Math.random()*0.4}s`;
+    board.appendChild(p);
+    setTimeout(()=>p.remove(),900);
+  }
+}
+
+// ===================== PARTICLES BACKGROUND =====================
+(function initParticles(){
+  const c=document.getElementById('particles-canvas');
+  const ctx=c.getContext('2d');
+  let pts=[];
+  function resize(){c.width=window.innerWidth;c.height=window.innerHeight;}
+  resize();
+  window.addEventListener('resize',resize);
+  for(let i=0;i<40;i++)pts.push({x:Math.random()*c.width,y:Math.random()*c.height,r:1+Math.random()*2,vx:(Math.random()-0.5)*0.3,vy:(Math.random()-0.5)*0.3,a:Math.random()});
+  function frame(){
+    ctx.clearRect(0,0,c.width,c.height);
+    pts.forEach(p=>{
+      p.x+=p.vx;p.y+=p.vy;p.a=0.3+0.3*Math.sin(Date.now()*0.001+p.x);
+      if(p.x<0||p.x>c.width)p.vx*=-1;
+      if(p.y<0||p.y>c.height)p.vy*=-1;
+      ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(108,59,255,${p.a})`;ctx.fill();
+    });
+    requestAnimationFrame(frame);
+  }
+  frame();
+})();
+
+// ===================== SCREEN MANAGEMENT =====================
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  const screen=document.getElementById(id);
+  if(screen){screen.classList.add('active');}
+  // populate screens
+  if(id==='screen-shop')renderShopTab('themes');
+  if(id==='screen-missions')renderMissions();
+  if(id==='screen-achievements')renderAchievements();
+  if(id==='screen-menu'){updateMenuUI();}
+}
+function closeOverlay(id){document.getElementById(id).classList.remove('active');}
+function openOverlay(id){document.getElementById(id).classList.add('active');}
+
+// ===================== UPDATE UI =====================
+function updateCoinsUI(){
+  ['menu-coins','shop-coins'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=STATE.coins;});
+  const ge=document.getElementById('menu-gems');if(ge)ge.textContent=STATE.gems;
+}
+function updateMenuUI(){
+  document.getElementById('menu-best-score').textContent=formatNum(STATE.bestScore);
+  document.getElementById('menu-level').textContent=STATE.level;
+  document.getElementById('menu-streak').textContent=STATE.streak;
+  updateCoinsUI();
+  // daily badge
+  const today=new Date().toDateString();
+  const badge=document.getElementById('daily-badge');
+  if(badge)badge.style.display=(STATE.lastDailyDate!==today)?'flex':'none';
+  renderMenuPreview();
+}
+function formatNum(n){if(n>=1000000)return(n/1000000).toFixed(1)+'M';if(n>=1000)return(n/1000).toFixed(1)+'K';return n.toString();}
+
+// ===================== MENU PREVIEW =====================
+function renderMenuPreview(){
+  const preview=document.getElementById('menu-preview');
+  if(!preview)return;
+  preview.innerHTML='';
+  const colors=getThemeColors();
+  const pattern=[
+    0,0,1,0,2,0,0,0,
+    0,1,1,1,2,2,0,0,
+    0,0,1,0,0,2,3,0,
+    0,0,0,0,0,0,3,0,
+    4,4,0,0,5,5,3,0,
+    4,0,0,0,5,0,0,0,
+    0,0,6,6,0,0,7,7,
+    0,0,6,0,0,0,0,7,
+  ];
+  pattern.forEach((v,i)=>{
+    const cell=document.createElement('div');
+    cell.className='prev-cell';
+    if(v>0){cell.style.background=colors[(v-1)%colors.length];cell.style.borderRadius='3px';cell.classList.add('filled');}
+    preview.appendChild(cell);
+  });
+}
+function getThemeColors(){return THEMES[STATE.activeTheme]?.colors||THEMES.default.colors;}
+
+// ===================== BOARD INIT =====================
+function initBoard(){
+  const board=document.getElementById('board');
+  board.innerHTML='';
+  GAME.board=[];
+  for(let r=0;r<BOARD_SIZE;r++){
+    GAME.board.push([]);
+    for(let c=0;c<BOARD_SIZE;c++){
+      GAME.board[r].push(0);
+      const cell=document.createElement('div');
+      cell.className='cell';
+      cell.dataset.r=r;cell.dataset.c=c;
+      board.appendChild(cell);
+    }
+  }
+}
+function renderBoard(){
+  const board=document.getElementById('board');
+  const colors=getThemeColors();
+  for(let r=0;r<BOARD_SIZE;r++){
+    for(let c=0;c<BOARD_SIZE;c++){
+      const cell=board.children[r*BOARD_SIZE+c];
+      if(!cell)continue;
+      cell.className='cell';
+      const v=GAME.board[r][c];
+      if(v>0){
+        cell.classList.add('filled');
+        let color=colors[(v-1)%colors.length];
+        if(v===99){cell.classList.add('bomb-cell');color='#ff4444';}
+        if(v===98){cell.classList.add('rainbow-cell');color='transparent';cell.style.background='linear-gradient(135deg,#ff0000,#ff7700,#ffff00,#00ff00,#0000ff,#8b00ff)';}
+        else cell.style.background=color;
+        applySkinEffect(cell,v);
+      } else {
+        cell.style.background='';cell.style.boxShadow='';cell.style.border='';
+      }
+    }
+  }
+}
+function applySkinEffect(cell,colorIdx){
+  const skin=STATE.activeSkin;
+  switch(skin){
+    case'glossy':cell.style.boxShadow=`0 0 8px ${getThemeColors()[(colorIdx-1)%8]}80,inset 0 1px 2px rgba(255,255,255,0.4)`;break;
+    case'gem':cell.style.background=`linear-gradient(135deg,${getThemeColors()[(colorIdx-1)%8]},${getThemeColors()[(colorIdx)%8]})`;break;
+    case'metal':cell.style.background=`linear-gradient(135deg,${getThemeColors()[(colorIdx-1)%8]},#888,${getThemeColors()[(colorIdx-1)%8]})`;break;
+    case'fire':cell.style.boxShadow=`0 0 12px ${getThemeColors()[(colorIdx-1)%8]}`;break;
+    case'ice':cell.style.border='1px solid rgba(200,240,255,0.4)';cell.style.boxShadow='inset 0 0 8px rgba(150,220,255,0.3)';break;
+  }
+}
+
+// ===================== PIECE GENERATION =====================
+function generatePiece(){
+  const difficulty=STATE.settings.difficulty;
+  let shapes=[...PIECE_SHAPES];
+  // add special sometimes
+  if(Math.random()<0.05)shapes.push(...SPECIAL_PIECES);
+  if(difficulty==='easy'){shapes=shapes.filter(s=>s.pts<=4);}
+  if(difficulty==='hard'){shapes=shapes.filter(s=>s.pts>=3);}
+  const def=shapes[Math.floor(Math.random()*shapes.length)];
+  const colors=getThemeColors();
+  const colorIdx=Math.floor(Math.random()*colors.length)+1;
+  return {shape:def.shape,name:def.name,color:colors[(colorIdx-1)%colors.length],colorIdx,pts:def.pts,special:def.special||null,icon:def.icon||null};
+}
+function refillPieces(){
+  for(let i=0;i<3;i++){
+    if(!GAME.pieces[i]||GAME.pieces[i].used){
+      GAME.pieces[i]=generatePiece();
+      GAME.pieces[i].used=false;
+    }
+  }
+  renderPieces();
+}
+function checkRefill(){
+  if(GAME.pieces.every(p=>!p||p.used)){
+    GAME.pieces=[null,null,null];
+    setTimeout(()=>{
+      for(let i=0;i<3;i++)GAME.pieces[i]={...generatePiece(),used:false};
+      renderPieces();
+      checkMoves();
+    },300);
+  }
+}
+function renderPieces(){
+  for(let i=0;i<3;i++){
+    const slot=document.getElementById(`slot-${i}`);
+    if(!slot)continue;
+    slot.innerHTML='';
+    const piece=GAME.pieces[i];
+    if(!piece||piece.used){slot.classList.add('used');continue;}
+    slot.classList.remove('used','selected-piece');
+    const grid=document.createElement('div');
+    grid.className='piece-grid';
+    const rows=piece.shape.length;
+    const cols=piece.shape[0].length;
+    grid.style.gridTemplateColumns=`repeat(${cols},var(--piece-cell))`;
+    grid.style.gridTemplateRows=`repeat(${rows},var(--piece-cell))`;
+    piece.shape.forEach(row=>{
+      row.forEach(v=>{
+        const pc=document.createElement('div');
+        pc.className='pc';
+        if(v){pc.style.background=piece.color;applySkinEffect(pc,piece.colorIdx);}
+        else{pc.style.background='transparent';}
+        grid.appendChild(pc);
+      });
+    });
+    slot.appendChild(grid);
+    setupPieceSlotEvents(slot,i);
+  }
+}
+function setupPieceSlotEvents(slot,idx){
+  // Mouse
+  slot.addEventListener('mousedown',e=>{if(GAME.pieces[idx]&&!GAME.pieces[idx].used&&!GAME.selectedBooster)startDrag(e,idx);},false);
+  // Touch
+  slot.addEventListener('touchstart',e=>{if(GAME.pieces[idx]&&!GAME.pieces[idx].used&&!GAME.selectedBooster){e.preventDefault();startDrag(e.touches[0],idx);}},{passive:false});
+}
+
+// ===================== DRAG & DROP =====================
+let dragData={active:false,pieceIdx:-1,startX:0,startY:0,curRow:-1,curCol:-1};
+function startDrag(e,slotIdx){
+  const piece=GAME.pieces[slotIdx];
+  if(!piece||piece.used)return;
+  dragData={active:true,pieceIdx:slotIdx,startX:e.clientX,startY:e.clientY,curRow:-1,curCol:-1};
+  GAME.dragSlot=slotIdx;
+  GAME.dragPiece=piece;
+  // Show preview
+  const preview=document.getElementById('drag-preview');
+  const previewGrid=document.getElementById('preview-grid');
+  previewGrid.innerHTML='';
+  const cols=piece.shape[0].length;
+  previewGrid.style.gridTemplateColumns=`repeat(${cols},calc(var(--cell) - 2px))`;
+  previewGrid.style.gridTemplateRows=`repeat(${piece.shape.length},calc(var(--cell) - 2px))`;
+  piece.shape.forEach(row=>{
+    row.forEach(v=>{
+      const pc=document.createElement('div');
+      pc.className='pc';
+      if(v){pc.style.background=piece.color;pc.style.boxShadow=`0 0 8px ${piece.color}80`;}
+      else pc.style.background='transparent';
+      previewGrid.appendChild(pc);
+    });
+  });
+  preview.style.display='block';
+  moveDragPreview(e.clientX,e.clientY);
+  slot.classList.add('dragging');
+}
+document.addEventListener('mousemove',e=>{if(dragData.active){moveDragPreview(e.clientX,e.clientY);updateGhost(e.clientX,e.clientY);}});
+document.addEventListener('mouseup',e=>{if(dragData.active)endDrag(e.clientX,e.clientY);});
+document.addEventListener('touchmove',e=>{if(dragData.active){e.preventDefault();moveDragPreview(e.touches[0].clientX,e.touches[0].clientY);updateGhost(e.touches[0].clientX,e.touches[0].clientY);}},{passive:false});
+document.addEventListener('touchend',e=>{if(dragData.active){const t=e.changedTouches[0];endDrag(t.clientX,t.clientY);}});
+function moveDragPreview(x,y){
+  const preview=document.getElementById('drag-preview');
+  preview.style.left=x+'px';preview.style.top=y+'px';
+}
+function getBoardCellFromPoint(x,y){
+  const board=document.getElementById('board');
+  if(!board)return null;
+  const rect=board.getBoundingClientRect();
+  const cellSize=(rect.width-12)/BOARD_SIZE;
+  const col=Math.floor((x-rect.left-6)/cellSize);
+  const row=Math.floor((y-rect.top-6)/cellSize);
+  if(row<0||row>=BOARD_SIZE||col<0||col>=BOARD_SIZE)return null;
+  return{row,col};
+}
+function updateGhost(x,y){
+  clearGhost();
+  const piece=GAME.dragPiece;
+  if(!piece)return;
+  const board=document.getElementById('board');
+  if(!board)return;
+  const rect=board.getBoundingClientRect();
+  const cellSize=(rect.width-12)/BOARD_SIZE;
+  const pRows=piece.shape.length,pCols=piece.shape[0].length;
+  // Offset so center of piece aligns
+  const offsetX=(pCols/2)*cellSize;
+  const offsetY=(pRows/2)*cellSize;
+  const startCol=Math.floor((x-rect.left-6-offsetX)/cellSize);
+  const startRow=Math.floor((y-rect.top-6-offsetY)/cellSize);
+  const cells=board.children;
+  let valid=true;
+  const toMark=[];
+  for(let r=0;r<pRows;r++){
+    for(let c=0;c<pCols;c++){
+      if(!piece.shape[r][c])continue;
+      const br=startRow+r,bc=startCol+c;
+      if(br<0||br>=BOARD_SIZE||bc<0||bc>=BOARD_SIZE){valid=false;break;}
+      if(GAME.board[br][bc]!==0){valid=false;break;}
+      toMark.push({r:br,c:bc});
+    }
+    if(!valid)break;
+  }
+  dragData.curRow=startRow;dragData.curCol=startCol;
+  toMark.forEach(({r,c})=>{
+    const cell=cells[r*BOARD_SIZE+c];
+    if(cell){cell.classList.add(valid?'highlight':'invalid');GAME.ghostCells.push(cell);}
+  });
+  if(!valid&&GAME.ghostCells.length===0){
+    for(let r=0;r<pRows;r++)for(let c=0;c<pCols;c++){
+      if(!piece.shape[r][c])continue;
+      const br=startRow+r,bc=startCol+c;
+      if(br>=0&&br<BOARD_SIZE&&bc>=0&&bc<BOARD_SIZE){
+        const cell=cells[br*BOARD_SIZE+bc];
+        if(cell){cell.classList.add('invalid');GAME.ghostCells.push(cell);}
+      }
+    }
+  }
+}
+function clearGhost(){
+  GAME.ghostCells.forEach(c=>{c.classList.remove('highlight','invalid');});
+  GAME.ghostCells=[];
+}
+function endDrag(x,y){
+  dragData.active=false;
+  document.getElementById('drag-preview').style.display='none';
+  clearGhost();
+  const slot=document.getElementById(`slot-${GAME.dragSlot}`);
+  if(slot)slot.classList.remove('dragging');
+  const piece=GAME.dragPiece;
+  if(!piece)return;
+  const board=document.getElementById('board');
+  if(!board)return;
+  const rect=board.getBoundingClientRect();
+  const cellSize=(rect.width-12)/BOARD_SIZE;
+  const pRows=piece.shape.length,pCols=piece.shape[0].length;
+  const offsetX=(pCols/2)*cellSize;
+  const offsetY=(pRows/2)*cellSize;
+  const startCol=Math.floor((x-rect.left-6-offsetX)/cellSize);
+  const startRow=Math.floor((y-rect.top-6-offsetY)/cellSize);
+  placePiece(piece,GAME.dragSlot,startRow,startCol);
+  GAME.dragPiece=null;GAME.dragSlot=-1;
+}
+
+// ===================== PLACE PIECE =====================
+function placePiece(piece,slotIdx,startRow,startCol){
+  if(!canPlace(piece,startRow,startCol)){
+    playSound('error');vibrate([30,20,30]);
+    return false;
+  }
+  // Place on board
+  const pRows=piece.shape.length,pCols=piece.shape[0].length;
+  const placed=[];
+  for(let r=0;r<pRows;r++){
+    for(let c=0;c<pCols;c++){
+      if(!piece.shape[r][c])continue;
+      const br=startRow+r,bc=startCol+c;
+      GAME.board[br][bc]=piece.special==='bomb'?99:piece.special==='rainbow'?98:piece.colorIdx;
+      placed.push({r:br,c:bc});
+    }
+  }
+  GAME.pieces[slotIdx].used=true;
+  GAME.blocksPlaced+=placed.length;
+  playSound('place');vibrate(30);
+  // Animate placed cells
+  const boardEl=document.getElementById('board');
+  placed.forEach(({r,c})=>{
+    const cell=boardEl.children[r*BOARD_SIZE+c];
+    if(cell){cell.classList.add('placing');setTimeout(()=>cell.classList.remove('placing'),300);}
+  });
+  // Add score
+  const placeScore=piece.pts*10;
+  addScore(placeScore);
+  // Show float score
+  if(placed.length>0){
+    const firstCell=boardEl.children[placed[0].r*BOARD_SIZE+placed[0].c];
+    if(firstCell){
+      const rect=firstCell.getBoundingClientRect();
+      const boardRect=boardEl.getBoundingClientRect();
+      showFloatText(`+${placeScore}`,rect.left-boardRect.left,rect.top-boardRect.top,false);
+    }
+  }
+  // Render
+  renderBoard();
+  // Check clears
+  setTimeout(()=>{
+    checkClears(placed);
+    renderPieces();
+    checkRefill();
+    updateMissionProgress('blocks',placed.length);
+    // Check missions
+    checkMissionTriggers();
+  },150);
+  return true;
+}
+function canPlace(piece,startRow,startCol){
+  const pRows=piece.shape.length,pCols=piece.shape[0].length;
+  for(let r=0;r<pRows;r++){
+    for(let c=0;c<pCols;c++){
+      if(!piece.shape[r][c])continue;
+      const br=startRow+r,bc=startCol+c;
+      if(br<0||br>=BOARD_SIZE||bc<0||bc>=BOARD_SIZE)return false;
+      if(GAME.board[br][bc]!==0)return false;
+    }
+  }
+  return true;
+}
+
+// ===================== CLEAR CHECK =====================
+function checkClears(placed){
+  if(GAME.animating)return;
+  let rowsToClear=new Set();
+  let colsToClear=new Set();
+  // Check all rows and cols
+  for(let r=0;r<BOARD_SIZE;r++){if(GAME.board[r].every(v=>v!==0))rowsToClear.add(r);}
+  for(let c=0;c<BOARD_SIZE;c++){if(GAME.board.every(row=>row[c]!==0))colsToClear.add(c);}
+  if(rowsToClear.size===0&&colsToClear.size===0){
+    GAME.combo=0;updateComboUI();
+    checkMoves();return;
+  }
+  GAME.animating=true;
+  const clearedCells=new Set();
+  rowsToClear.forEach(r=>{for(let c=0;c<BOARD_SIZE;c++)clearedCells.add(`${r},${c}`);});
+  colsToClear.forEach(col=>{for(let r=0;r<BOARD_SIZE;r++)clearedCells.add(`${r},${col}`);});
+  const totalLines=rowsToClear.size+colsToClear.size;
+  GAME.linesCleared+=totalLines;
+  // Combo
+  GAME.combo++;
+  if(GAME.combo>GAME.maxCombo)GAME.maxCombo=GAME.combo;
+  if(GAME.combo>1)GAME.combosTriggered++;
+  // Score calculation
+  let lineScore=0;
+  clearedCells.forEach(()=>lineScore+=10);
+  lineScore*=GAME.combo;
+  // Bonus for multiple lines
+  if(totalLines>=2)lineScore*=totalLines;
+  addScore(lineScore);
+  playSound(GAME.combo>1?'combo':'clear');
+  vibrate(GAME.combo>1?[50,30,50]:60);
+  // Animate clearing
+  const boardEl=document.getElementById('board');
+  [...clearedCells].forEach((key,i)=>{
+    const [r,c]=key.split(',').map(Number);
+    const cell=boardEl.children[r*BOARD_SIZE+c];
+    if(cell){
+      setTimeout(()=>{
+        cell.classList.add('clearing');
+        spawnCellParticles(r,c);
+      },i*10);
+    }
+  });
+  // Show combo
+  if(GAME.combo>1){
+    updateComboUI();
+    showComboBanner(`${GAME.combo}x COMBO!`);
+    showToast(`${GAME.combo}x Combo! +${lineScore} puan!`,'gold','🔥');
+  } else {
+    if(totalLines>1){showToast(`${totalLines} satır temizlendi! +${lineScore}`,'success','💥');}
+  }
+  updateMissionProgress('lines',totalLines);
+  updateMissionProgress('combo',GAME.combo);
+  setTimeout(()=>{
+    clearedCells.forEach(key=>{
+      const[r,c]=key.split(',').map(Number);
+      GAME.board[r][c]=0;
+    });
+    GAME.linesCleared+=0;
+    STATE.totalLines+=totalLines;
+    STATE.totalCombos+=GAME.combo>1?1:0;
+    renderBoard();
+    GAME.animating=false;
+    // Check for chain
+    setTimeout(()=>{
+      let moreRows=0,moreCols=0;
+      for(let r=0;r<BOARD_SIZE;r++)if(GAME.board[r].every(v=>v!==0))moreRows++;
+      for(let c=0;c<BOARD_SIZE;c++)if(GAME.board.every(row=>row[c]!==0))moreCols++;
+      if(moreRows+moreCols>0){checkClears([]);}
+      else{GAME.combo=0;updateComboUI();checkMoves();}
+    },100);
+  },500+clearedCells.size*8);
+  // Check achievements
+  if(GAME.linesCleared>=50)unlockAchievement('lines_50');
+  if(GAME.combo>=5)unlockAchievement('combo_5');
+}
+function updateComboUI(){
+  const cd=document.getElementById('combo-display');
+  if(!cd)return;
+  if(GAME.combo>1){cd.classList.add('visible');document.getElementById('combo-count').textContent=GAME.combo;}
+  else{cd.classList.remove('visible');}
+}
+function showComboBanner(text){
+  const board=document.getElementById('board');
+  if(!board)return;
+  const banner=document.createElement('div');
+  banner.className='combo-banner';
+  banner.textContent=text;
+  board.appendChild(banner);
+  setTimeout(()=>banner.remove(),1300);
+}
+function showFloatText(text,x,y,isCombo){
+  const board=document.getElementById('board');
+  const ft=document.createElement('div');
+  ft.className=`float-text ${isCombo?'float-combo':'float-score'}`;
+  ft.style.left=x+'px';ft.style.top=y+'px';
+  ft.textContent=text;
+  board.appendChild(ft);
+  setTimeout(()=>ft.remove(),1100);
+}
+
+// ===================== SCORE =====================
+function addScore(pts){
+  GAME.score+=pts;
+  const sv=document.getElementById('score-val');
+  if(sv){sv.textContent=formatNum(GAME.score);sv.classList.add('bump');setTimeout(()=>sv.classList.remove('bump'),300);}
+  if(GAME.score>STATE.bestScore){STATE.bestScore=GAME.score;const sb=document.getElementById('score-best-game');if(sb)sb.textContent=`En: ${formatNum(STATE.bestScore)}`;}
+  addXP(Math.floor(pts/10));
+  updateMissionProgress('score',GAME.score);
+  // Check score achievements
+  if(GAME.score>=1000)unlockAchievement('score_1k');
+  if(GAME.score>=10000)unlockAchievement('score_10k');
+}
+function addXP(amount){
+  STATE.xp+=amount;
+  while(STATE.xp>=STATE.xpMax){
+    STATE.xp-=STATE.xpMax;
+    STATE.level++;
+    STATE.xpMax=Math.floor(100*Math.pow(1.2,STATE.level-1));
+    onLevelUp();
+  }
+  updateXPBar();
+}
+function updateXPBar(){
+  const fill=document.getElementById('xp-fill');
+  const cur=document.getElementById('xp-cur');
+  const max=document.getElementById('xp-max');
+  const lv=document.getElementById('game-level');
+  if(fill)fill.style.width=(STATE.xp/STATE.xpMax*100)+'%';
+  if(cur)cur.textContent=STATE.xp;
+  if(max)max.textContent=STATE.xpMax;
+  if(lv)lv.textContent=STATE.level;
+}
+function onLevelUp(){
+  playSound('levelup');vibrate([80,40,80,40,120]);
+  const banner=document.getElementById('levelup-banner');
+  const num=document.getElementById('lu-num');
+  if(banner&&num){num.textContent=STATE.level;banner.classList.add('show');}
+  setTimeout(()=>{if(banner)banner.classList.remove('show');},2500);
+  const coinReward=STATE.level*50;
+  STATE.coins+=coinReward;
+  showToast(`Seviye ${STATE.level}! +${coinReward} Coin kazandın!`,'gold','🚀');
+  if(STATE.level>=5)unlockAchievement('level_5');
+  saveState();
+}
+
+// ===================== MOVE CHECK =====================
+function checkMoves(){
+  const hint=document.getElementById('no-moves-hint');
+  const anyPiece=GAME.pieces.some(p=>p&&!p.used);
+  if(!anyPiece){if(hint)hint.style.display='none';return;}
+  let canMove=false;
+  for(let i=0;i<3;i++){
+    const p=GAME.pieces[i];if(!p||p.used)continue;
+    for(let r=0;r<BOARD_SIZE&&!canMove;r++){
+      for(let c=0;c<BOARD_SIZE&&!canMove;c++){
+        if(canPlace(p,r,c))canMove=true;
+      }
+    }
+  }
+  if(!canMove){
+    if(hint)hint.style.display='block';
+    // Check if any boosters available
+    const hasBooster=STATE.boosters.rowblast>0||STATE.boosters.bomb>0||STATE.boosters.extra>0||STATE.boosters.shuffle>0;
+    if(!hasBooster){
+      setTimeout(()=>triggerGameOver(),800);
+    }
+  } else {
+    if(hint)hint.style.display='none';
+  }
+}
+
+// ===================== BOOSTERS =====================
+let activeBoosterType=null;
+function activateBooster(type){
+  if(STATE.boosters[type]<=0){showToast('Booster yok! Mağazadan satın alabilirsin.','error','❌');return;}
+  if(activeBoosterType===type){
+    activeBoosterType=null;
+    document.querySelectorAll('.booster-btn').forEach(b=>b.classList.remove('active-booster'));
+    return;
+  }
+  activeBoosterType=type;
+  document.querySelectorAll('.booster-btn').forEach(b=>b.classList.remove('active-booster'));
+  document.getElementById(`b-${type}`).classList.add('active-booster');
+  GAME.selectedBooster=type;
+  if(type==='rowblast'){showToast('Bir satıra dokun, o satırı temizle!','info','💥');}
+  else if(type==='bomb'){showToast('3x3 alanı patlat!','info','💣');}
+  else if(type==='shuffle'){useBooster('shuffle');}
+  else if(type==='extra'){showToast('Kullanmak istediğin bloğa dokun!','info','⭐');}
+}
+function useBooster(type,row,col){
+  if(STATE.boosters[type]<=0)return;
+  STATE.boosters[type]--;
+  updateBoosterCounts();
+  activeBoosterType=null;GAME.selectedBooster=null;
+  document.querySelectorAll('.booster-btn').forEach(b=>b.classList.remove('active-booster'));
+  unlockAchievement('booster_use');
+  vibrate(80);
+  switch(type){
+    case'rowblast':
+      if(row!==undefined){
+        for(let c=0;c<BOARD_SIZE;c++){
+          if(GAME.board[row][c]!==0){GAME.board[row][c]=0;spawnCellParticles(row,c);}
+        }
+        addScore(80);playSound('clear');
+        renderBoard();
+        setTimeout(()=>checkMoves(),300);
+        showToast('Satır yok edildi! +80','success','💥');
+      }
+      break;
+    case'bomb':
+      if(row!==undefined){
+        for(let r=Math.max(0,row-1);r<=Math.min(BOARD_SIZE-1,row+1);r++){
+          for(let c=Math.max(0,col-1);c<=Math.min(BOARD_SIZE-1,col+1);c++){
+            if(GAME.board[r][c]!==0){GAME.board[r][c]=0;spawnCellParticles(r,c);}
+          }
+        }
+        addScore(120);playSound('combo');spawnConfetti();
+        renderBoard();
+        setTimeout(()=>checkMoves(),300);
+        showToast('Bomba patladı! +120','success','💣');
+        document.getElementById('board').classList.add('shake');
+        setTimeout(()=>document.getElementById('board').classList.remove('shake'),400);
+      }
+      break;
+    case'shuffle':
+      GAME.pieces=[null,null,null];
+      for(let i=0;i<3;i++)GAME.pieces[i]={...generatePiece(),used:false};
+      renderPieces();playSound('coin');
+      showToast('Bloklar yenilendi!','info','🔀');
+      checkMoves();
+      break;
+    case'extra':
+      if(row!==undefined&&col!==undefined){
+        GAME.board[row][col]=0;
+        addScore(50);playSound('place');
+        renderBoard();
+        setTimeout(()=>checkMoves(),200);
+        showToast('Blok silindi! +50','success','⭐');
+      }
+      break;
+  }
+  saveState();
+}
+function updateBoosterCounts(){
+  ['rowblast','bomb','shuffle','extra'].forEach(t=>{
+    const el=document.getElementById(`b-${t}-count`);
+    if(el){el.textContent=STATE.boosters[t];el.parentElement.classList.toggle('btn-disabled',STATE.boosters[t]<=0);}
+  });
+}
+// Board click for boosters
+document.addEventListener('click',e=>{
+  if(!activeBoosterType||!GAME.active)return;
+  const cell=e.target.closest('.cell');
+  if(!cell)return;
+  const r=parseInt(cell.dataset.r),c=parseInt(cell.dataset.c);
+  useBooster(activeBoosterType,r,c);
+});
+
+// ===================== GAME FLOW =====================
+function startGame(){
+  loadState();
+  GAME={board:[],pieces:[null,null,null],score:0,combo:0,maxCombo:0,linesCleared:0,blocksPlaced:0,combosTriggered:0,active:true,paused:false,gameOver:false,dragPiece:null,dragSlot:-1,ghostCells:[],selectedBooster:null,animating:false};
+  initBoard();
+  for(let i=0;i<3;i++)GAME.pieces[i]={...generatePiece(),used:false};
+  renderBoard();renderPieces();
+  document.getElementById('score-val').textContent='0';
+  document.getElementById('score-best-game').textContent=`En: ${formatNum(STATE.bestScore)}`;
+  updateBoosterCounts();updateXPBar();
+  document.getElementById('no-moves-hint').style.display='none';
+  document.getElementById('combo-display').classList.remove('visible');
+  showScreen('screen-game');
+  unlockAchievement('first_game');
+  STATE.totalGames++;
+  updateMissionProgress('games',1);
+  saveState();
+}
+function pauseGame(){
+  if(!GAME.active)return;
+  GAME.paused=true;
+  openOverlay('pause-overlay');
+}
+function resumeGame(){
+  GAME.paused=false;
+  closeOverlay('pause-overlay');
+}
+function restartGame(){
+  closeOverlay('pause-overlay');
+  startGame();
+}
+function quitToMenu(){
+  GAME.active=false;
+  closeOverlay('pause-overlay');
+  showScreen('screen-menu');
+  saveState();
+}
+function triggerGameOver(){
+  if(GAME.gameOver)return;
+  GAME.gameOver=true;GAME.active=false;
+  playSound('gameover');vibrate([100,50,100,50,200]);
+  STATE.totalLines+=GAME.linesCleared;
+  STATE.totalBlocks+=GAME.blocksPlaced;
+  STATE.totalCombos+=GAME.combosTriggered;
+  // Coin reward
+  const coinReward=Math.floor(GAME.score/100)+GAME.linesCleared*2;
+  STATE.coins+=coinReward;
+  saveState();
+  // Streak
+  const today=new Date().toDateString();
+  if(STATE.lastPlayDate===new Date(Date.now()-86400000).toDateString())STATE.streak++;
+  else if(STATE.lastPlayDate!==today)STATE.streak=1;
+  STATE.lastPlayDate=today;
+  saveState();
+  // Show
+  const isNew=GAME.score>=STATE.bestScore&&GAME.score>0;
+  document.getElementById('go-score').textContent=formatNum(GAME.score);
+  document.getElementById('go-best').textContent=`En Yüksek: ${formatNum(STATE.bestScore)}`;
+  document.getElementById('go-new-record').style.display=isNew?'block':'none';
+  document.getElementById('go-lines').textContent=GAME.linesCleared;
+  document.getElementById('go-combos').textContent=GAME.combosTriggered;
+  document.getElementById('go-blocks').textContent=GAME.blocksPlaced;
+  document.getElementById('go-coin-reward').textContent=coinReward;
+  if(GAME.score>=10000)document.getElementById('go-icon').textContent='🔥';
+  else if(GAME.score>=5000)document.getElementById('go-icon').textContent='⭐';
+  else document.getElementById('go-icon').textContent='💀';
+  setTimeout(()=>showScreen('screen-gameover'),400);
+  if(GAME.score>=1000)unlockAchievement('score_1k');
+  if(STATE.totalGames>=10)unlockAchievement('play_10');
+  if(STATE.totalBlocks>=100)unlockAchievement('blocks_100');
+  if(STATE.streak>=3)unlockAchievement('streak_3');
+  checkMissionTriggers();
+}
+
+// ===================== MISSIONS =====================
+function updateMissionProgress(type,amount){
+  if(!GAME.active)return;
+  STATE.missions.forEach(m=>{
+    if(m.completed)return;
+    if(m.type===type){
+      if(type==='score')m.progress=Math.max(m.progress,amount);
+      else m.progress=Math.min(m.target,m.progress+amount);
+      if(m.progress>=m.target){m.completed=true;showToast(`Görev tamamlandı: ${m.name}!`,'gold','📋');}
+    }
+  });
+  saveState();
+}
+function checkMissionTriggers(){}
+function claimMission(missionId){
+  const m=STATE.missions.find(x=>x.id===missionId);
+  if(!m||!m.completed||m.claimed)return;
+  m.claimed=true;
+  if(m.reward.type==='coin'){STATE.coins+=m.reward.amount;showReward('🪙','Görev Ödülü!',m.name,`+${m.reward.amount} Coin`,3);}
+  if(m.reward.type==='gem'){STATE.gems+=m.reward.amount;showReward('💎','Görev Ödülü!',m.name,`+${m.reward.amount} Gem`,3);}
+  saveState();renderMissions();
+}
+function renderMissions(){
+  const content=document.getElementById('missions-content');
+  if(!content)return;
+  content.innerHTML='<div class="shop-section-title">Aktif Görevler</div>';
+  STATE.missions.forEach(m=>{
+    const pct=Math.min(100,Math.round(m.progress/m.target*100));
+    const div=document.createElement('div');
+    div.className='mission-item'+(m.claimed?' completed':'');
+    div.innerHTML=`
+      <div class="mission-header">
+        <div class="mission-icon">${m.icon}</div>
+        <div class="mission-info">
+          <div class="mission-name">${m.name}</div>
+          <div class="mission-desc">${m.desc}</div>
+          <div class="mission-reward">${m.reward.type==='coin'?'🪙':'💎'} +${m.reward.amount} ${m.reward.type==='coin'?'Coin':'Gem'}</div>
+        </div>
+      </div>
+      <div class="mission-progress"><div class="mission-fill" style="width:${pct}%"></div></div>
+      <div class="mission-pct">${m.progress}/${m.target} (${pct}%)</div>
+      ${m.completed&&!m.claimed?`<button class="mission-claim-btn" onclick="claimMission('${m.id}')">✅ Ödülü Al</button>`:''}
+      ${m.claimed?'<div style="text-align:center;color:var(--accent4);font-size:12px;margin-top:6px">✓ Tamamlandı</div>':''}`;
+    content.appendChild(div);
+  });
+}
+
+// ===================== ACHIEVEMENTS =====================
+function unlockAchievement(id){
+  if(STATE.unlockedAchievements.includes(id))return;
+  const ach=ACHIEVEMENT_DEFS.find(a=>a.id===id);
+  if(!ach)return;
+  STATE.unlockedAchievements.push(id);
+  STATE.coins+=ach.reward;
+  showToast(`Başarı açıldı: ${ach.name}! +${ach.reward} Coin`,'gold','🏆');
+  playSound('coin');saveState();
+}
+function renderAchievements(){
+  const content=document.getElementById('achievements-content');
+  if(!content)return;
+  content.innerHTML='<div class="achievement-grid">';
+  ACHIEVEMENT_DEFS.forEach(ach=>{
+    const unlocked=STATE.unlockedAchievements.includes(ach.id);
+    content.innerHTML+=`<div class="ach-item ${unlocked?'unlocked':'locked'}">
+      <div class="ach-icon">${ach.icon}</div>
+      <div class="ach-name">${ach.name}</div>
+      <div class="ach-desc">${ach.desc}</div>
+      <div class="ach-reward">🪙 +${ach.reward}</div>
+    </div>`;
+  });
+  content.innerHTML+='</div>';
+}
+
+// ===================== DAILY REWARD =====================
+function showDailyReward(){
+  renderDailyGrid();openOverlay('daily-overlay');
+  const today=new Date().toDateString();
+  const btn=document.getElementById('daily-claim-btn');
+  if(STATE.lastDailyDate===today){btn.disabled=true;btn.textContent='Yarın Tekrar Gel!';btn.style.opacity='0.5';}
+  else{btn.disabled=false;btn.textContent='Bugünkü Ödülü Al!';btn.style.opacity='1';}
+}
+function renderDailyGrid(){
+  const grid=document.getElementById('daily-grid');if(!grid)return;
+  grid.innerHTML='';
+  const today=new Date().toDateString();
+  const day=STATE.dailyDay||0;
+  DAILY_REWARDS.forEach((r,i)=>{
+    const div=document.createElement('div');
+    const isClaimed=i<day;
+    const isToday=i===day&&STATE.lastDailyDate!==today;
+    const isLocked=i>day;
+    div.className=`daily-day${isClaimed?' claimed':''}${isToday?' today':''}${isLocked?' locked':''}`;
+    div.innerHTML=`<div class="d-num">Gün ${i+1}</div><div class="d-icon">${r.icon}</div><div class="d-val">${r.label}</div>${isClaimed?'<div class="check">✓</div>':''}`;
+    grid.appendChild(div);
+  });
+}
+function claimDailyReward(){
+  const today=new Date().toDateString();
+  if(STATE.lastDailyDate===today){showToast('Bugün zaten topladın!','info','📦');return;}
+  const reward=DAILY_REWARDS[STATE.dailyDay%DAILY_REWARDS.length];
+  STATE.lastDailyDate=today;
+  STATE.dailyDay=(STATE.dailyDay||0)+1;
+  if(reward.type==='coin'){STATE.coins+=reward.amount;showReward('🪙','Günlük Ödül!',`Gün ${STATE.dailyDay}`,`+${reward.amount} Coin`);}
+  else if(reward.type==='gem'){STATE.gems+=reward.amount;showReward('💎','Günlük Ödül!',`Gün ${STATE.dailyDay}`,`+${reward.amount} Gem`);}
+  else if(reward.type==='booster'){STATE.boosters.rowblast++;updateBoosterCounts();showReward('⚡','Günlük Ödül!',`Gün ${STATE.dailyDay}`,'Booster x1');}
+  playSound('coin');saveState();
+  closeDailyReward();
+  updateMenuUI();
+}
+function closeDailyReward(){closeOverlay('daily-overlay');}
+
+// ===================== SHOP =====================
+let currentShopTab='themes';
+function switchShopTab(tab,el){
+  document.querySelectorAll('.shop-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderShopTab(tab);
+}
+function renderShopTab(tab){
+  currentShopTab=tab;
+  const content=document.getElementById('shop-content');
+  if(!content)return;
+  updateCoinsUI();
+  content.innerHTML='';
+  if(tab==='themes'){
+    content.innerHTML='<div class="shop-section-title">Tahta Temaları</div><div class="shop-grid"></div>';
+    const grid=content.querySelector('.shop-grid');
+    Object.entries(THEMES).forEach(([key,theme])=>{
+      const owned=STATE.ownedThemes.includes(key);
+      const active=STATE.activeTheme===key;
+      const price=key==='default'?0:{'neon':300,'sunset':250,'ocean':200,'forest':200,'galaxy':500}[key]||200;
+      const div=document.createElement('div');
+      div.className=`shop-item${owned?' owned':''}${active?' active-item':''}`;
+      const previewColors=theme.colors.slice(0,6);
+      div.innerHTML=`
+        <div class="theme-preview" style="background:${theme.bg}">
+          <div class="theme-preview-cells">
+            ${previewColors.map((c,i)=>`<div class="tp-cell" style="background:${c}"></div>`).join('')}
+            ${Array(15-previewColors.length).fill('<div class="tp-cell" style="background:rgba(255,255,255,0.05)"></div>').join('')}
+          </div>
+        </div>
+        <div class="item-name">${theme.name}</div>
+        <div class="item-price">${owned?(active?'✓ Aktif':'Seç'):`<span class="icon">🪙</span>${price}`}</div>
+        ${owned&&active?'<div class="active-badge">AKTİF</div>':''}
+        ${owned&&!active?'<div class="owned-badge">SAHIP</div>':''}`;
+      div.onclick=()=>buyOrActivateTheme(key,price,owned);
+      grid.appendChild(div);
+    });
+  } else if(tab==='skins'){
+    content.innerHTML='<div class="shop-section-title">Blok Skinleri</div><div class="shop-grid"></div>';
+    const grid=content.querySelector('.shop-grid');
+    Object.entries(SKINS).forEach(([key,skin])=>{
+      const owned=STATE.ownedSkins.includes(key);
+      const active=STATE.activeSkin===key;
+      const price=key==='default'?0:{'glossy':150,'gem':400,'metal':300,'fire':350,'ice':250}[key]||200;
+      const div=document.createElement('div');
+      div.className=`shop-item${owned?' owned':''}${active?' active-item':''}`;
+      div.innerHTML=`
+        <div class="item-icon">${skin.icon}</div>
+        <div class="item-name">${skin.name}</div>
+        <div class="item-price">${owned?(active?'✓ Aktif':'Seç'):`<span class="icon">🪙</span>${price}`}</div>
+        <div style="font-size:11px;color:var(--text-muted);text-align:center">${skin.desc}</div>
+        ${owned&&active?'<div class="active-badge">AKTİF</div>':''}
+        ${owned&&!active?'<div class="owned-badge">SAHIP</div>':''}`;
+      div.onclick=()=>buyOrActivateSkin(key,price,owned);
+      grid.appendChild(div);
+    });
+  } else if(tab==='boosters'){
+    content.innerHTML='<div class="shop-section-title">Booster Satın Al</div>';
+    const boosters=[
+      {key:'rowblast',icon:'💥',name:'Satır Patlatıcı',desc:'Seçili satırı temizler',price:100},
+      {key:'bomb',icon:'💣',name:'Bomba',desc:'3x3 alanı temizler',price:150},
+      {key:'shuffle',icon:'🔀',name:'Karıştır',desc:'Tüm blokları yeniler',price:80},
+      {key:'extra',icon:'⭐',name:'Ekstra Şans',desc:'Tek blok siler, devam eder',price:120},
+    ];
+    boosters.forEach(b=>{
+      const div=document.createElement('div');
+      div.className='booster-shop-item';
+      div.innerHTML=`
+        <div class="b-icon">${b.icon}</div>
+        <div class="b-info">
+          <div class="b-name">${b.name}</div>
+          <div class="b-desc">${b.desc}</div>
+          <div style="font-size:12px;color:var(--text-dim);margin-top:3px">Sahip: <b style="color:#fff">${STATE.boosters[b.key]||0}</b></div>
+        </div>
+        <div class="b-buy"><span>🪙</span>${b.price}</div>`;
+      div.onclick=()=>buyBooster(b.key,b.price);
+      content.appendChild(div);
+    });
+    // Gem packages
+    content.innerHTML+=`<div class="shop-section-title" style="margin-top:16px">Coin Paketleri</div>`;
+    const packs=[{icon:'💎',name:'1 Gem',amount:1,price:0,type:'gem_free',label:'Bedava İzle'},
+      {icon:'💰',name:'100 Coin',amount:100,price:1,type:'gem',label:'1 💎'},
+      {icon:'💰',name:'500 Coin',amount:500,price:4,type:'gem',label:'4 💎'},
+    ];
+    packs.forEach(pack=>{
+      const div=document.createElement('div');
+      div.className='booster-shop-item';
+      div.innerHTML=`<div class="b-icon">${pack.icon}</div><div class="b-info"><div class="b-name">${pack.name}</div></div><div class="b-buy">${pack.label}</div>`;
+      if(pack.type==='gem_free')div.onclick=()=>{STATE.gems++;updateCoinsUI();showToast('1 Gem eklendi!','gold','💎');saveState();};
+      else div.onclick=()=>{if(STATE.gems>=pack.price){STATE.gems-=pack.price;STATE.coins+=pack.amount;updateCoinsUI();showToast(`${pack.amount} Coin eklendi!`,'gold','🪙');saveState();}else showToast('Yeterli Gem yok!','error','❌');};
+      content.appendChild(div);
+    });
+  } else if(tab==='chests'){
+    content.innerHTML='<div class="shop-section-title">Sandık Aç</div>';
+    const chests=[
+      {icon:'📦',name:'Ahşap Sandık',cost:100,rarity:'COMMON',coinRange:[50,150],bonusChance:0.1},
+      {icon:'🗃️',name:'Gümüş Sandık',cost:300,rarity:'RARE',coinRange:[150,400],bonusChance:0.3},
+      {icon:'💎',name:'Altın Sandık',cost:500,rarity:'EPIC',coinRange:[400,1000],bonusChance:0.6},
+    ];
+    const row=document.createElement('div');
+    row.className='chest-container';
+    chests.forEach(chest=>{
+      const div=document.createElement('div');
+      div.className='chest-item';
+      div.innerHTML=`
+        <div class="chest-icon">${chest.icon}</div>
+        <div class="chest-name">${chest.name}</div>
+        <div class="chest-rarity">${chest.rarity}</div>
+        <div class="chest-cost"><span>🪙</span>${chest.cost}</div>`;
+      div.onclick=()=>openChest(chest);
+      row.appendChild(div);
+    });
+    content.appendChild(row);
+    content.innerHTML+=`<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:12px">Sandıklarda: Coin, Gem, Booster ve özel ödüller olabilir!</div>`;
+  }
+}
+function buyOrActivateTheme(key,price,owned){
+  if(owned){
+    STATE.activeTheme=key;
+    saveState();renderShopTab('themes');renderBoard();renderMenuPreview();
+    showToast(`${THEMES[key].name} teması aktif!`,'success','✨');
+  } else {
+    if(STATE.coins<price){showToast('Yeterli coin yok!','error','❌');return;}
+    STATE.coins-=price;STATE.ownedThemes.push(key);STATE.activeTheme=key;
+    saveState();renderShopTab('themes');renderBoard();
+    updateCoinsUI();
+    showReward('🎨','Tema Açıldı!',THEMES[key].name,`${THEMES[key].name} artık senin!`,3);
+  }
+}
+function buyOrActivateSkin(key,price,owned){
+  if(owned){
+    STATE.activeSkin=key;
+    saveState();renderShopTab('skins');renderBoard();
+    showToast(`${SKINS[key].name} skin aktif!`,'success','✨');
+  } else {
+    if(STATE.coins<price){showToast('Yeterli coin yok!','error','❌');return;}
+    STATE.coins-=price;STATE.ownedSkins.push(key);STATE.activeSkin=key;
+    saveState();renderShopTab('skins');renderBoard();
+    updateCoinsUI();
+    showReward('✨','Skin Açıldı!',SKINS[key].name,`${SKINS[key].name} artık seninle!`,3);
+  }
+}
+function buyBooster(key,price){
+  if(STATE.coins<price){showToast('Yeterli coin yok!','error','❌');return;}
+  STATE.coins-=price;STATE.boosters[key]=(STATE.boosters[key]||0)+1;
+  saveState();updateBoosterCounts();updateCoinsUI();renderShopTab('boosters');
+  showToast(`Booster satın alındı!`,'success','⚡');playSound('coin');
+}
+function openChest(chest){
+  if(STATE.coins<chest.cost){showToast('Yeterli coin yok!','error','❌');return;}
+  STATE.coins-=chest.cost;
+  // Roll reward
+  const coinAmt=chest.coinRange[0]+Math.floor(Math.random()*(chest.coinRange[1]-chest.coinRange[0]));
+  STATE.coins+=coinAmt;
+  let extraReward='';
+  if(Math.random()<chest.bonusChance){
+    const bonuses=['rowblast','bomb','shuffle','extra'];
+    const bonus=bonuses[Math.floor(Math.random()*bonuses.length)];
+    STATE.boosters[bonus]++;
+    extraReward=` + Booster!`;
+  }
+  if(Math.random()<0.05){STATE.gems++;extraReward+=' + 1 💎';}
+  saveState();updateCoinsUI();renderShopTab('chests');
+  showReward(chest.icon,'Sandık Açıldı!',chest.name,`+${coinAmt} Coin${extraReward}`,chest.rarity==='EPIC'?5:chest.rarity==='RARE'?4:3);
+  spawnConfetti();
+}
+
+// ===================== LUCKY SPIN =====================
+let spinning=false,spinAngle=0;
+function showLuckySpin(){
+  renderSpinWheel();
+  openOverlay('spin-overlay');
+  const today=new Date().toDateString();
+  const freeEl=document.getElementById('spin-free-info');
+  if(freeEl){
+    if(STATE.spinFreeDate!==today)freeEl.textContent='🎁 Bugün 1 bedava çevirme hakkın var!';
+    else freeEl.textContent='Bedava hakkını kullandın.';
+  }
+}
+function renderSpinWheel(){
+  const canvas=document.getElementById('spin-canvas');
+  if(!canvas)return;
+  const ctx=canvas.getContext('2d');
+  const cx=140,cy=140,r=130;
+  ctx.clearRect(0,0,280,280);
+  const segAngle=2*Math.PI/SPIN_PRIZES.length;
+  SPIN_PRIZES.forEach((prize,i)=>{
+    const startA=i*segAngle+spinAngle;
+    const endA=startA+segAngle;
+    ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,startA,endA);ctx.closePath();
+    ctx.fillStyle=prize.color;ctx.fill();
+    ctx.strokeStyle='rgba(0,0,0,0.3)';ctx.lineWidth=2;ctx.stroke();
+    ctx.save();ctx.translate(cx,cy);ctx.rotate(startA+segAngle/2);ctx.textAlign='right';
+    ctx.font='bold 12px Nunito';ctx.fillStyle='#fff';ctx.shadowColor='rgba(0,0,0,0.8)';ctx.shadowBlur=4;
+    ctx.fillText(prize.label,r-12,5);ctx.restore();
+  });
+  // Center circle
+  ctx.beginPath();ctx.arc(cx,cy,30,0,Math.PI*2);
+  ctx.fillStyle='#1a1a3a';ctx.fill();
+  ctx.strokeStyle=THEMES[STATE.activeTheme]?.colors[0]||'#6c3bff';ctx.lineWidth=3;ctx.stroke();
+}
+function doSpin(method){
+  if(spinning)return;
+  const today=new Date().toDateString();
+  if(method==='coin'){
+    if(STATE.coins<50){showToast('50 coin lazım!','error','❌');return;}
+    STATE.coins-=50;
+  } else if(method==='gem'){
+    if(STATE.gems<1){showToast('1 gem lazım!','error','❌');return;}
+    STATE.gems-=1;
+  } else {
+    // free
+    if(STATE.spinFreeDate===today){showToast('Bedava çevirme hakkını kullandın!','error','❌');return;}
+    STATE.spinFreeDate=today;
+  }
+  spinning=true;
+  updateCoinsUI();
+  const totalRot=4*Math.PI*2+Math.random()*2*Math.PI;
+  const duration=3500;
+  const start=Date.now();
+  const startAngle=spinAngle;
+  function animate(){
+    const elapsed=Date.now()-start;
+    const progress=Math.min(1,elapsed/duration);
+    const ease=1-Math.pow(1-progress,4);
+    spinAngle=startAngle+totalRot*ease;
+    renderSpinWheel();
+    if(progress<1){requestAnimationFrame(animate);}
+    else{
+      spinAngle=spinAngle%(2*Math.PI);
+      spinning=false;
+      const seg=SPIN_PRIZES.length;
+      const normalizedAngle=(2*Math.PI-spinAngle%(2*Math.PI)+2*Math.PI)%(2*Math.PI);
+      const idx=Math.floor(normalizedAngle/(2*Math.PI/seg))%seg;
+      const prize=SPIN_PRIZES[idx];
+      setTimeout(()=>{
+        closeOverlay('spin-overlay');
+        if(prize.type==='coin'){STATE.coins+=prize.amount;showReward('🪙','Çevirim Ödülü!',prize.label,`+${prize.amount} Coin`,3);}
+        else if(prize.type==='gem'){STATE.gems+=prize.amount;showReward('💎','Çevirim Ödülü!',prize.label,`+${prize.amount} Gem`,4);}
+        else if(prize.type==='booster'){STATE.boosters.rowblast++;showReward('⚡','Çevirim Ödülü!','Booster Kazandın!','Booster x1',3);}
+        else{showToast('Şansın yaver gitmedi!','info','😢');}
+        saveState();updateCoinsUI();
+      },300);
+    }
+  }
+  requestAnimationFrame(animate);
+}
+
+// ===================== SETTINGS =====================
+function toggleSetting(key,el){
+  STATE.settings[key]=!STATE.settings[key];
+  el.classList.toggle('on',STATE.settings[key]);
+  saveState();
+}
+function setDifficulty(level,el){
+  STATE.settings.difficulty=level;
+  document.querySelectorAll('[id^=diff-]').forEach(b=>{b.className='btn btn-sm btn-glass';});
+  el.className='btn btn-sm btn-primary';
+  saveState();
+}
+function resetAllData(){
+  if(!confirm('Tüm verileri sıfırlamak istediğinden emin misin?'))return;
+  localStorage.removeItem('bba_state');
+  location.reload();
+}
+
+// ===================== INIT =====================
+function init(){
+  loadState();
+  initMissions();
+  updateMenuUI();
+  updateBoosterCounts();
+  // Check daily
+  const today=new Date().toDateString();
+  if(STATE.lastDailyDate!==today){
+    setTimeout(()=>{
+      const badge=document.getElementById('daily-badge');
+      if(badge)badge.style.display='flex';
+    },1000);
+  }
+  // Apply theme
+  document.documentElement.style.setProperty('--bg-deep',THEMES[STATE.activeTheme]?.bg||THEMES.default.bg);
+}
+init();
+</script>
+</body>
+</html>
