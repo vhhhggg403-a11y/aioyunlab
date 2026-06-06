@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kayıp Kaset: Gırizi Olayı - Sinematik Sürüm</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body, html { 
+            width: 100%; height: 100%; overflow: hidden; 
+            background-color: #030303; 
+            font-family: 'Courier New', Courier, monospace; 
+            cursor: crosshair;
+            display: flex; justify-content: center; align-items: center;
+        }
+        
+        #gameContainer {
+            position: relative;
+            width: 800px;
+            height: 600px;
+            border: 6px solid #1a1a1a;
+            box-shadow: 0 0 50px rgba(0,0,0,1), inset 0 0 100px rgba(0,0,0,0.8);
+            overflow: hidden;
+            background: #000;
+        }
+
+        canvas { display: block; width: 100%; height: 100%; }
+
+        /* --- ANALOG VHS FİLTRELERİ --- */
+        .vhs-grain {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 10; opacity: 0.08;
+            background: url('data:image/svg+xml,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noise"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="4" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noise)"/%3E%3C/svg%3E');
+        }
+
+        .vhs-scanlines {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 11;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.35) 50%);
+            background-size: 100% 4px;
+        }
+
+        .vhs-distortion {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 12;
+            box-shadow: inset 0 0 80px rgba(0,0,0,0.9);
+            animation: vhsGlitch 0.2s infinite;
+        }
+
+        @keyframes vhsGlitch {
+            0% { filter: hue-rotate(0deg) contrast(1) brightness(1); }
+            50% { filter: hue-rotate(1deg) contrast(1.05) brightness(0.95); }
+            100% { filter: hue-rotate(-0.5deg) contrast(1) brightness(1.02); }
+        }
+
+        /* UI Arayüz Elemanları */
+        .ui-element {
+            position: absolute; color: #d0d0d0; font-size: 13px; font-weight: bold; z-index: 5;
+            text-shadow: 2px 2px 4px #000; letter-spacing: 1px;
+        }
+        #vhsStatus { top: 25px; left: 25px; color: #ff2222; animation: blink 1s infinite step-end; }
+        #vhsTime { top: 25px; right: 25px; }
+        
+        #staminaContainer { bottom: 25px; left: 25px; width: 180px; }
+        .bar-label { font-size: 10px; margin-bottom: 4px; color: #aaa; }
+        #staminaBarBg { width: 100%; height: 8px; background: rgba(255,255,255,0.1); border: 1px solid #444; }
+        #staminaBar { width: 100%; height: 100%; background: #fff; box-shadow: 0 0 8px #fff; transition: width 0.05s linear; }
+        
+        #batteryContainer { bottom: 25px; right: 25px; text-align: right; }
+
+        @keyframes blink { 50% { opacity: 0; } }
+
+        /* Diyalog Kutusu */
+        #dialogueBox {
+            position: absolute; bottom: 65px; left: 50%; transform: translateX(-50%);
+            width: 85%; background: rgba(5, 5, 5, 0.95); border: 2px solid #550000;
+            padding: 20px; color: #fff; font-size: 15px; display: none; z-index: 20;
+            box-shadow: 0 0 20px rgba(0,0,0,0.9); line-height: 1.5;
+        }
+        #spacePrompt { font-size: 10px; color: #666; margin-top: 10px; display: block; text-align: right; }
+
+        /* Dağcının Kanlı Notu Arayüzü */
+        #noteOverlay {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 75%; height: 80%; background: #dcd3c1; border: 2px solid #a3957e;
+            box-shadow: 0 0 40px rgba(0,0,0,0.9); padding: 35px; color: #262017;
+            font-family: 'Georgia', serif; display: none; z-index: 30; overflow: hidden;
+            border-radius: 4px;
+        }
+        #noteOverlay h2 { font-size: 18px; margin-bottom: 15px; border-bottom: 1px dashed #7a6a53; padding-bottom: 5px; font-weight: bold; }
+        #noteOverlay p { font-size: 14px; line-height: 1.6; font-style: italic; margin-bottom: 15px; }
+        .blood-stain {
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 120px;
+            background: linear-gradient(to top, rgba(90, 0, 0, 0.85), rgba(90, 0, 0, 0.4), rgba(0,0,0,0));
+            pointer-events: none;
+        }
+        .blood-splat {
+            position: absolute; bottom: 30px; right: 50px; width: 120px; height: 70px;
+            background: rgba(70, 0, 0, 0.8); border-radius: 50%; filter: blur(4px); transform: rotate(-15deg);
+        }
+        #noteClosePrompt {
+            position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%);
+            font-family: 'Courier New', monospace; font-size: 11px; color: #444; font-weight: bold;
+        }
+
+        /* Giriş Ekranı */
+        #menuScreen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: #050505; z-index: 100; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; color: #fff; text-align: center;
+        }
+        #menuScreen h1 { font-size: 32px; margin-bottom: 10px; color: #990000; letter-spacing: 2px; }
+        #menuScreen p { font-size: 12px; color: #666; margin-bottom: 30px; }
+        .play-btn {
+            padding: 12px 30px; background: transparent; border: 2px solid #fff; color: #fff;
+            font-family: inherit; font-size: 16px; cursor: pointer; transition: all 0.2s;
+        }
+        .play-btn:hover { background: #fff; color: #000; box-shadow: 0 0 15px #fff; }
+    </style>
+</head>
+<body>
+
+<div id="gameContainer">
+    <div class="vhs-grain"></div>
+    <div class="vhs-scanlines"></div>
+    <div class="vhs-distortion"></div>
+    
+    <div id="menuScreen">
+        <h1>KAYIP KASET: GIRIZI</h1>
+        <p>Kaset Tarihi: 14 Kasım 1994 | Durum: Deforme</p>
+        <button class="play-btn" onclick="startGame()">KASETİ OYNAT</button>
+    </div>
+    
+    <div id="vhsStatus" class="ui-element">● REC</div>
+    <div id="vhsTime" class="ui-element">14:11:94 02:43:12</div>
+    
+    <div id="staminaContainer" class="ui-element">
+        <div class="bar-label">STAMINA (SHIFT veya E)</div>
+        <div id="staminaBarBg"><div id="staminaBar"></div></div>
+    </div>
+    <div id="batteryContainer" class="ui-element">
+        <div class="bar-label">FENER GÜCÜ</div>
+        <div id="batteryText">100%</div>
+    </div>
+
+    <div id="noteOverlay">
+        <h2>Eski Bir Dağcının Günlüğü - 12 Ekim 1994</h2>
+        <p>Bu lanet olası ormanda bir şeyler ters gidiyor. Haftalardır durduk yere, hiçbir mantıklı sebep yokken etrafta vahşice parçalanmış hayvan cesetleri buluyorum. Doğa kanunu değil bu, resmen katliam.</p>
+        <p>Kasaba ihtiyarlarının bahsettiği o paranormal hikayelere inanmalıydım... 'Gırizi' dedikleri o simsiyah şey gerçekmiş. Gölgelerden beslenen, iki ayak üstünde yürüyen devasa bir ayı silueti... Ama gövdesindeki o gözler bir hayvana değil, tamamen diri bir insana ait!</p>
+        <p>Her ağacın arkasından o lanetli insan gözleriyle bana baktığını hissediyorum. Akıl sağlığımı kaybetmek üzereyim. Gece yarısı çadırımın etrafında ağır ayak sesleri dolanıyor... Galiba... galiba beni buldu.</p>
+        <div class="blood-stain"></div>
+        <div class="blood-splat"></div>
+        <div id="noteClosePrompt">[ KAPATMAK VE DEVAM ETMEK İÇİN SPACE TUŞUNA BASIN ]</div>
+    </div>
+
+    <div id="dialogueBox">
+        <span id="dialogueText"></span>
+        <span id="spacePrompt">[ GEÇMEK İÇİN SPACE TUŞUNA BASIN ]</span>
+    </div>
+
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+</div>
+
+<script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const staminaBar = document.getElementById("staminaBar");
+    const batteryText = document.getElementById("batteryText");
+    const dialogueBox = document.getElementById("dialogueBox");
+    const dialogueText = document.getElementById("dialogueText");
+    const menuScreen = document.getElementById("menuScreen");
+    const noteOverlay = document.getElementById("noteOverlay");
+
+    const STATES = { INTRO_CAR: 0, INTRO_DIALOGUE: 1, WALK_1: 2, RABBIT_DIALOGUE: 3, NOTE_READING: 4, WALK_2: 5, BEAR_DIALOGUE: 6, CHASE: 7, JUMPSCARE: 8, WIN: 9 };
+    let currentState = STATES.INTRO_CAR;
+
+    const keys = {};
+    window.addEventListener("keydown", e => { keys[e.code] = true; });
+    window.addEventListener("keyup", e => { keys[e.code] = false; });
+
+    const player = {
+        x: 400, y: 480, worldY: 0,
+        speed: 1.8, runSpeed: 4.0,
+        stamina: 100, maxStamina: 100,
+        battery: 100, isRunning: false,
+        shakeX: 0, shakeY: 0
+    };
+
+    const bear = { x: 400, worldY: -200, speed: 3.15, eyeJitter: 0, mode: 'behind', timer: 0 };
+
+    // Daha gerçekçi animasyon için değişkenler
+    let introCarY = 800;
+    let introStep = 0; 
+    let introSpeed = 6.0; // Yüksek hızda başlar
+    let roadOffset = 0; // Akan yol efekti
+
+    const world = {
+        trees: [],
+        deadAnimals: [
+            { x: 320, y: 200, r: 18 }, { x: 460, y: 550, r: 25 }, 
+            { x: 260, y: 900, r: 15 }, { x: 520, y: 1300, r: 22 }
+        ],
+        ghostEyes: [ 
+            {x: 130, y: 350}, {x: 690, y: 600}, {x: 110, y: 1100}, {x: 660, y: 1500}, {x: 145, y: 2000}
+        ],
+        rabbit: { x: 400, y: 750, triggered: false },
+        bearTriggerY: 1600,
+        forkY: 2400,
+        endY: 3600
+    };
+
+    for(let i = -500; i < world.endY + 500; i += 70) {
+        world.trees.push({ x: 100 + Math.random() * 80, y: i, size: 30 + Math.random() * 20 });
+        world.trees.push({ x: 620 + Math.random() * 80, y: i, size: 30 + Math.random() * 20 });
+    }
+
+    let audioCtx = null;
+    let ambientNode = null;
+
+    function initAudio() {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let osc = audioCtx.createOscillator();
+        let gain = audioCtx.createGain();
+        let filter = audioCtx.createBiquadFilter();
+        
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(45, audioCtx.currentTime); 
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(120, audioCtx.currentTime);
+        
+        gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+        
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        ambientNode = { osc, gain };
+    }
+
+    function playBeep(freq, duration, type='sine') {
+        if(!audioCtx) return;
+        let osc = audioCtx.createOscillator();
+        let gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+    }
+
+    function playJumpscareSound() {
+        if(!audioCtx) return;
+        ambientNode.osc.stop();
+        for(let i=0; i<3; i++) {
+            let osc = audioCtx.createOscillator();
+            let gain = audioCtx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(100 + Math.random()*200, audioCtx.currentTime);
+            osc.frequency.linearRampToValueAtTime(40, audioCtx.currentTime + 1.5);
+            gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.001, audioCtx.currentTime + 1.5);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+        }
+    }
+
+    let dialogueIndex = 0;
+    let dialogueLines = [];
+    let dialogueCallback = null;
+    let currentTextDisplayed = "";
+    let charIndex = 0;
+    let isTyping = false;
+
+    function startDialogue(lines, callback) {
+        dialogueLines = lines;
+        dialogueIndex = 0;
+        dialogueCallback = callback;
+        dialogueBox.style.display = "block";
+        typeLine();
+    }
+
+    function typeLine() {
+        if (dialogueIndex < dialogueLines.length) {
+            isTyping = true;
+            currentTextDisplayed = "";
+            charIndex = 0;
+            animateText();
+        } else {
+            dialogueBox.style.display = "none";
+            if (dialogueCallback) dialogueCallback();
+        }
+    }
+
+    function animateText() {
+        let fullText = dialogueLines[dialogueIndex];
+        if (charIndex < fullText.length) {
+            currentTextDisplayed += fullText.charAt(charIndex);
+            dialogueText.innerText = currentTextDisplayed;
+            charIndex++;
+            if(charIndex % 2 === 0) playBeep(80 + Math.random()*40, 0.05, 'triangle'); 
+            setTimeout(animateText, 30);
+        } else {
+            isTyping = false;
+        }
+    }
+
+    window.addEventListener("keydown", e => {
+        if (e.code === "Space" && currentState === STATES.NOTE_READING) {
+            noteOverlay.style.display = "none";
+            currentState = STATES.WALK_2;
+            playBeep(100, 0.2, 'triangle');
+            return;
+        }
+
+        if (e.code === "Space" && dialogueBox.style.display === "block") {
+            if (isTyping) {
+                charIndex = dialogueLines[dialogueIndex].length;
+                dialogueText.innerText = dialogueLines[dialogueIndex];
+                isTyping = false;
+            } else {
+                dialogueIndex++;
+                typeLine();
+            }
+        }
+    });
+
+    function startGame() {
+        menuScreen.style.display = "none";
+        try { initAudio(); } catch(e) { console.log(e); }
+        gameLoop();
+    }
+
+    function gameLoop() {
+        update();
+        draw();
+        requestAnimationFrame(gameLoop);
+    }
+
+    function update() {
+        if (currentState === STATES.JUMPSCARE || currentState === STATES.WIN) return;
+
+        // GELİŞMİŞ SİNEMATİK ANİMASYON MANTIĞI
+        if (currentState === STATES.INTRO_CAR) {
+            if (introStep === 0) {
+                introCarY -= introSpeed;
+                roadOffset += introSpeed; 
+                
+                // Araba yavaşça fren yapar (Gerçekçi fizik)
+                if (introCarY <= 480 && introSpeed > 0) {
+                    introSpeed -= 0.04;
+                    if(introSpeed < 0) introSpeed = 0;
+                }
+                
+                player.shakeX = Math.sin(Date.now() * 0.05) * (introSpeed * 0.4); 
+
+                if (introSpeed === 0 && introCarY <= 480) {
+                    introStep = 1; 
+                }
+            } else if (introStep === 1) {
+                player.shakeX = 0;
+                introStep = 2;
+                currentState = STATES.INTRO_DIALOGUE;
+                player.x = 330; // Arabanın solu
+                player.y = 420;
+                startDialogue([
+                    "TBR-409 plakalı arabam tamamen durdu... Benzin bitti.",
+                    "Lanet olsun, bu zifiri karanlık dağ yolunun ortasında kaldım.",
+                    "[Arabadan aşağı indin. Buz gibi bir rüzgar yüzüne vuruyor.]",
+                    "???: Evlat... Bu lanetli ormana asla gelmemeliydin...",
+                    "???: Burası gölgelerin ve kurbanların yuvasıdır. Gırizi her yerde...",
+                    "???: Çok geç olmadan, arkana bile bakmadan hemen kaç!"
+                ], () => {
+                    currentState = STATES.WALK_1;
+                    player.x = 400;
+                    player.y = 480;
+                    player.worldY = 0;
+                });
+            }
+        }
+
+        if (player.battery > 0 && currentState !== STATES.RABBIT_DIALOGUE && currentState !== STATES.BEAR_DIALOGUE && currentState !== STATES.NOTE_READING && currentState !== STATES.INTRO_DIALOGUE && currentState !== STATES.INTRO_CAR) {
+            player.battery -= 0.01;
+            batteryText.innerText = `${Math.floor(player.battery)}%`;
+        }
+
+        if(player.isRunning) {
+            player.shakeX = Math.sin(Date.now() * 0.015) * 3;
+            player.shakeY = Math.cos(Date.now() * 0.02) * 2;
+        } else if ((keys["KeyW"] || keys["ArrowUp"]) && currentState !== STATES.NOTE_READING && currentState !== STATES.INTRO_DIALOGUE && currentState !== STATES.INTRO_CAR) {
+            player.shakeX = Math.sin(Date.now() * 0.008) * 1.5;
+            player.shakeY = Math.cos(Date.now() * 0.01) * 0.8;
+        } else if (currentState !== STATES.INTRO_CAR) {
+            player.shakeX = 0; player.shakeY = Math.sin(Date.now() * 0.002) * 0.5;
+        }
+
+        // Ana Hareket Dinamikleri
+        if (currentState !== STATES.RABBIT_DIALOGUE && currentState !== STATES.BEAR_DIALOGUE && currentState !== STATES.NOTE_READING && currentState !== STATES.INTRO_DIALOGUE && currentState !== STATES.INTRO_CAR) {
+            let speed = player.speed;
+
+            if ((keys["ShiftLeft"] || keys["KeyE"]) && player.stamina > 2 && (keys["KeyW"] || keys["ArrowUp"])) {
+                player.isRunning = true;
+                speed = player.runSpeed;
+                player.stamina -= 0.35;
+                if(Math.random() > 0.85) playBeep(60, 0.1, 'sine'); 
+            } else {
+                player.isRunning = false;
+                if (player.stamina < player.maxStamina) player.stamina += 0.12;
+            }
+
+            staminaBar.style.width = `${player.stamina}%`;
+
+            if (keys["KeyW"] || keys["ArrowUp"]) player.worldY += speed;
+            if (keys["KeyA"] || keys["ArrowLeft"]) player.x -= speed * 0.8;
+            if (keys["KeyD"] || keys["ArrowRight"]) player.x += speed * 0.8;
+
+            if (player.x < 180) player.x = 180;
+            if (player.x > 620) player.x = 620;
+
+            if (player.worldY >= world.forkY) {
+                if (player.x < 370) { 
+                    if (player.worldY >= world.forkY + 450) {
+                        currentState = STATES.JUMPSCARE;
+                        playJumpscareSound();
+                    }
+                } else if (player.x > 430) { 
+                    if (player.worldY >= world.endY) {
+                        currentState = STATES.WIN;
+                        if(audioCtx) ambientNode.osc.stop();
+                    }
+                } else {
+                    if (player.worldY > world.forkY + 40) player.worldY = world.forkY + 40;
+                }
+            }
+        }
+
+        // Hikaye Tetikleyicileri (Bozulmadı, aynı bırakıldı)
+        if (player.worldY >= world.rabbit.y && !world.rabbit.triggered && currentState === STATES.WALK_1) {
+            world.rabbit.triggered = true;
+            currentState = STATES.RABBIT_DIALOGUE;
+            startDialogue([
+                "Yolun ortasında feci şekilde parçalanmış bir tavşan bedeni yatıyor.",
+                "Etrafı simsiyah, pıhtılaşmış kanla kaplı...",
+                "Birden tavşanın kemikleri çatırdıyor ve kafası sana dönüyor!",
+                "TAVŞAN: Kaç... kaç... KAÇ GIRIZI KAÇ!"
+            ], () => { 
+                currentState = STATES.NOTE_READING;
+                noteOverlay.style.width = "75%"; 
+                noteOverlay.style.display = "block";
+                playBeep(140, 0.4, 'sine');
+            });
+        }
+
+        if (player.worldY >= world.bearTriggerY && currentState === STATES.WALK_2) {
+            currentState = STATES.BEAR_DIALOGUE;
+            bear.worldY = player.worldY - 220; 
+            bear.x = player.x;
+            startDialogue([
+                "Ağır gürültülü dal kırılmaları sesi geliyor. Çok yakınında.",
+                "Fenerini çeviriyorsun. İki ayak üzerinde duran simsiyah, devasa bir varlık.",
+                "Vücudu adeta gölgelerden yapılmış ama gözleri... o gözler tamamen canlı bir insana ait.",
+                "KARA AYI: Ormanın kalbine kadar geldin... Buradan çıkış yok, Gırizi."
+            ], () => { currentState = STATES.CHASE; });
+        }
+
+        // Gırizi Ön/Arka Zekası (Bozulmadı, aynı bırakıldı)
+        if (currentState === STATES.CHASE) {
+            bear.timer++;
+            bear.eyeJitter = Math.sin(Date.now() * 0.1) * 2;
+
+            if (bear.timer % 240 === 0) {
+                bear.mode = bear.mode === 'behind' ? 'ahead' : 'behind';
+                playBeep(50, 0.3, 'sawtooth');
+                
+                if (bear.mode === 'ahead') {
+                    bear.worldY = player.worldY + 260; 
+                    bear.x = 220 + Math.random() * 360; 
+                } else {
+                    bear.worldY = player.worldY - 180;
+                    bear.x = player.x;
+                }
+            }
+
+            if (bear.mode === 'behind') {
+                bear.worldY += bear.speed;
+                if (bear.x < player.x) bear.x += 1.2;
+                if (bear.x > player.x) bear.x -= 1.2;
+
+                if (bear.worldY >= player.worldY - 15) {
+                    currentState = STATES.JUMPSCARE;
+                    playJumpscareSound();
+                }
+            } else if (bear.mode === 'ahead') {
+                bear.worldY -= bear.speed * 0.4; 
+
+                if (Math.abs(bear.worldY - player.worldY) < 25 && Math.abs(bear.x - player.x) < 35) {
+                    currentState = STATES.JUMPSCARE;
+                    playJumpscareSound();
+                }
+                
+                if (bear.worldY < player.worldY - 40) {
+                    bear.mode = 'behind';
+                    bear.worldY = player.worldY - 180;
+                    bear.x = player.x;
+                }
+            }
+        }
+    }
+
+    function draw() {
+        ctx.fillStyle = "#000";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.save();
+        ctx.translate(player.shakeX, player.worldY + player.shakeY);
+
+        // --- ZEMİN VE YENİ AKAN YOL ANİMASYONU ---
+        ctx.fillStyle = "#0a0a08"; 
+        if (player.worldY < world.forkY) {
+            ctx.fillRect(200, -world.endY - 1000, 400, world.endY + 2000);
+            
+            // Eğer giriş animasyonundaysak yol çizgilerini hızla kaydır
+            if (currentState === STATES.INTRO_CAR || currentState === STATES.INTRO_DIALOGUE) {
+                ctx.fillStyle = "rgba(255, 255, 255, 0.05)";
+                for(let i = -800; i < 800; i += 60) {
+                    let lineY = i + (roadOffset % 60);
+                    ctx.fillRect(395, lineY - player.worldY, 10, 30);
+                }
+            }
+        } else {
+            ctx.fillRect(200, -world.forkY, 400, 1000); 
+            ctx.fillRect(100, -world.endY - 200, 200, world.endY - world.forkY + 200); 
+            ctx.fillRect(500, -world.endY - 200, 200, world.endY - world.forkY + 200); 
+        }
+
+        // --- DAHA GERÇEKÇİ ARABA VE FAR SİSTEMİ ---
+        if (currentState === STATES.INTRO_CAR || currentState === STATES.INTRO_DIALOGUE) {
+            // Araba Gölgesi
+            ctx.fillStyle = "rgba(0,0,0,0.8)";
+            ctx.fillRect(362, -introCarY + 10, 76, 110);
+            
+            // Arabanın Gövdesi
+            ctx.fillStyle = "#1e2024";
+            ctx.beginPath();
+            ctx.roundRect(365, -introCarY, 70, 100, 8);
+            ctx.fill();
+
+            // Kaput ve Tavan Gölgelendirmesi (Gerçekçilik)
+            ctx.fillStyle = "#15171a";
+            ctx.fillRect(370, -introCarY + 30, 60, 40);
+            
+            // Ön ve Arka Camlar
+            ctx.fillStyle = "#0a0b0d";
+            ctx.fillRect(370, -introCarY + 20, 60, 12); // Ön cam
+            ctx.fillRect(370, -introCarY + 68, 60, 10); // Arka cam
+
+            // Stop Lambaları
+            ctx.fillStyle = "#ff1100";
+            ctx.shadowColor = "#ff0000"; ctx.shadowBlur = 10;
+            ctx.fillRect(370, -introCarY + 95, 12, 4);
+            ctx.fillRect(418, -introCarY + 95, 12, 4);
+            ctx.shadowBlur = 0;
+
+            // Farlar ve Işık Hüzmesi (Volumetric Lighting)
+            let headlightAlpha = introStep === 0 ? 0.7 : 0.4; // Durunca farlar kısılır
+            let gradLeft = ctx.createLinearGradient(375, -introCarY, 340, -introCarY - 200);
+            gradLeft.addColorStop(0, `rgba(255, 255, 220, ${headlightAlpha})`);
+            gradLeft.addColorStop(1, "rgba(255, 255, 220, 0)");
+            
+            ctx.fillStyle = gradLeft;
+            ctx.beginPath();
+            ctx.moveTo(375, -introCarY); ctx.lineTo(320, -introCarY - 200); ctx.lineTo(410, -introCarY - 200);
+            ctx.fill();
+
+            let gradRight = ctx.createLinearGradient(425, -introCarY, 460, -introCarY - 200);
+            gradRight.addColorStop(0, `rgba(255, 255, 220, ${headlightAlpha})`);
+            gradRight.addColorStop(1, "rgba(255, 255, 220, 0)");
+            
+            ctx.fillStyle = gradRight;
+            ctx.beginPath();
+            ctx.moveTo(425, -introCarY); ctx.lineTo(390, -introCarY - 200); ctx.lineTo(480, -introCarY - 200);
+            ctx.fill();
+
+            // Lanetli Yaşlı Adamın Daha Gerçekçi Çizimi (Glitch Efektli Pelerin)
+            if (currentState === STATES.INTRO_DIALOGUE && dialogueIndex >= 3) {
+                let omX = 460; let omY = -introCarY - 50; // Arabanın ön çaprazında belirir
+                let glitch = Math.random() > 0.85 ? (Math.random() * 6 - 3) : 0; // VHS Titremesi
+                
+                // Varlık Aurası
+                let aura = ctx.createRadialGradient(omX, omY-20, 0, omX, omY-20, 40);
+                aura.addColorStop(0, "rgba(0,0,0,0.9)");
+                aura.addColorStop(1, "rgba(0,0,0,0)");
+                ctx.fillStyle = aura;
+                ctx.beginPath(); ctx.arc(omX, omY-20, 40, 0, Math.PI*2); ctx.fill();
+
+                // Pelerin Silueti
+                ctx.fillStyle = "#0a0a0a"; 
+                ctx.beginPath();
+                ctx.moveTo(omX + glitch, omY - 35); // Kafa tepesi
+                ctx.lineTo(omX - 18 + glitch, omY + 10); // Sol omuz/etek
+                ctx.lineTo(omX + 18 + glitch, omY + 10); // Sağ omuz/etek
+                ctx.fill();
+
+                // Parlayan Paranormal Gözler
+                ctx.fillStyle = "#ffffff"; 
+                ctx.shadowColor = "#ffffff"; ctx.shadowBlur = 15;
+                ctx.beginPath(); ctx.arc(omX - 3 + glitch, omY - 28, 1.8, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(omX + 3 + glitch, omY - 28, 1.8, 0, Math.PI*2); ctx.fill();
+                ctx.shadowBlur = 0; // Sıfırla
+            }
+        }
+
+        world.deadAnimals.forEach(ani => {
+            let grad = ctx.createRadialGradient(ani.x, -ani.y, 2, ani.x, -ani.y, ani.r);
+            grad.addColorStop(0, "#4a0000"); grad.addColorStop(0.7, "#200000"); grad.addColorStop(1, "rgba(0,0,0,0)");
+            ctx.fillStyle = grad;
+            ctx.beginPath(); ctx.arc(ani.x, -ani.y, ani.r, 0, Math.PI*2); ctx.fill();
+        });
+
+        world.ghostEyes.forEach(eye => {
+            let pulse = Math.abs(Math.sin(Date.now() * 0.003 + eye.y));
+            ctx.fillStyle = `rgba(220, 0, 0, ${pulse * 0.75})`;
+            ctx.beginPath(); ctx.arc(eye.x, -eye.y, 2.5, 0, Math.PI*2); ctx.arc(eye.x + 7, -eye.y, 2.5, 0, Math.PI*2); ctx.fill();
+        });
+
+        let tx = world.rabbit.x; let ty = -world.rabbit.y;
+        ctx.fillStyle = "#3a0000"; ctx.beginPath(); ctx.arc(tx, ty, 20, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = "#555"; ctx.fillRect(tx - 8, ty - 4, 16, 10);
+        ctx.fillStyle = "#222"; ctx.fillRect(tx - 6, ty - 10, 3, 7); ctx.fillRect(tx + 2, ty - 9, 4, 6);
+
+        if (player.worldY >= world.forkY - 300) {
+            ctx.fillStyle = "#151515"; ctx.fillRect(170, -world.forkY + 50, 6, 25); ctx.fillRect(620, -world.forkY + 50, 6, 25);
+            ctx.fillStyle = "#400"; ctx.fillRect(145, -world.forkY + 35, 56, 15); ctx.fillRect(595, -world.forkY + 35, 56, 15);
+            ctx.fillStyle = "#8a8a8a"; ctx.font = "bold 9px 'Courier New'";
+            ctx.fillText("ÇIKMAZ", 152, -world.forkY + 46); ctx.fillText("ÇIKIŞ", 608, -world.forkY + 46);
+        }
+
+        world.trees.forEach(t => {
+            ctx.fillStyle = "#030303";
+            ctx.fillRect(t.x - 6, -t.y - t.size, 12, t.size + 10);
+            ctx.beginPath(); ctx.moveTo(t.x, -t.y - t.size - 25); ctx.lineTo(t.x - t.size/2, -t.y - t.size + 10); ctx.lineTo(t.x + t.size/2, -t.y - t.size + 10); ctx.fill();
+        });
+
+        if (currentState === STATES.CHASE || currentState === STATES.BEAR_DIALOGUE) {
+            let bx = bear.x; let by = -bear.worldY;
+            ctx.fillStyle = "#000000";
+            ctx.fillRect(bx - 30, by - 110, 60, 110); 
+            ctx.fillRect(bx - 38, by - 100, 8, 90);   
+            ctx.fillRect(bx + 30, by - 100, 8, 90);   
+            ctx.beginPath(); ctx.arc(bx, by - 125, 20, 0, Math.PI*2); ctx.fill();
+
+            let eyeJ = bear.eyeJitter;
+            ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(bx - 8 + eyeJ, by - 126, 4, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = "#225588"; ctx.beginPath(); ctx.arc(bx - 8 + eyeJ, by - 126, 2, 0, Math.PI*2); ctx.fill(); 
+            ctx.fillStyle = "#000"; ctx.beginPath(); ctx.arc(bx - 8 + eyeJ, by - 126, 0.8, 0, Math.PI*2); ctx.fill(); 
+            ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(bx + 8 + eyeJ, by - 126, 4, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = "#225588"; ctx.beginPath(); ctx.arc(bx + 8 + eyeJ, by - 126, 2, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = "#000"; ctx.beginPath(); ctx.arc(bx + 8 + eyeJ, by - 126, 0.8, 0, Math.PI*2); ctx.fill();
+        }
+
+        ctx.restore();
+
+        // --- DAHA ANATOMİK OYUNCU ÇİZİMİ ---
+        if (currentState !== STATES.INTRO_CAR) {
+            // Omuzlar ve Kollar (Yukarıdan görünüş)
+            ctx.fillStyle = "#1e222b"; // Ceket rengi
+            ctx.beginPath();
+            ctx.roundRect(player.x - 14, player.y - 25, 28, 16, 4); // Omuz genişliği
+            ctx.fill();
+
+            // Sağ el (Feneri tutan el hafif önde)
+            ctx.fillStyle = "#e0a98b"; 
+            ctx.beginPath(); ctx.arc(player.x + 10, player.y - 35, 4, 0, Math.PI*2); ctx.fill();
+            
+            // Fener Gövdesi
+            ctx.fillStyle = "#444";
+            ctx.fillRect(player.x + 8, player.y - 42, 4, 10);
+
+            // Kafa
+            ctx.fillStyle = "#e0a98b"; 
+            ctx.beginPath(); ctx.arc(player.x, player.y - 28, 8, 0, Math.PI*2); ctx.fill();
+        }
+
+        // --- EL FENERİ MASKESİ ---
+        if (currentState !== STATES.JUMPSCARE && currentState !== STATES.WIN) {
+            ctx.save();
+            let flicker = 0;
+            if (currentState === STATES.CHASE && Math.random() > 0.8) flicker = Math.random() * 60 - 40;
+            if (player.battery <= 0) flicker = -180; 
+
+            let r = Math.max(0, 180 + flicker);
+
+            let mask = document.createElement('canvas');
+            mask.width = canvas.width; mask.height = canvas.height;
+            let mctx = mask.getContext('2d');
+            
+            mctx.fillStyle = "rgba(2, 2, 4, 0.99)"; 
+            mctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Işığın çıkış noktası artık feneri tutan sağ el
+            let lightSourceX = player.x + 10 + player.shakeX;
+            let lightSourceY = player.y - 42 + player.shakeY;
+
+            let radGrad = mctx.createRadialGradient(lightSourceX, lightSourceY, 5, lightSourceX, lightSourceY, r);
+            radGrad.addColorStop(0, "rgba(0,0,0,0)");
+            radGrad.addColorStop(0.5, "rgba(0,0,0,0.2)");
+            radGrad.addColorStop(1, "rgba(0,0,0,1)");
+            
+            mctx.globalCompositeOperation = 'destination-out';
+            mctx.fillStyle = radGrad;
+            mctx.beginPath(); mctx.arc(lightSourceX, lightSourceY, r, 0, Math.PI*2); mctx.fill();
+
+            ctx.drawImage(mask, 0, 0);
+            ctx.restore();
+        }
+
+        if (currentState === STATES.JUMPSCARE) {
+            ctx.fillStyle = "#000"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            let jScale = 1.0 + Math.sin(Date.now() * 0.5) * 0.05;
+            ctx.fillStyle = "#fff";
+            ctx.beginPath(); ctx.arc(280, 260, 95 * jScale, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(520, 260, 95 * jScale, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = "#0d2640"; 
+            ctx.beginPath(); ctx.arc(280, 260, 40 * jScale, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(520, 260, 40 * jScale, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = "#000"; 
+            ctx.beginPath(); ctx.arc(280, 260, 15, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(520, 260, 15, 0, Math.PI*2); ctx.fill();
+
+            ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
+            for(let i=0; i<canvas.height; i+=6) {
+                if(Math.random() > 0.4) ctx.fillRect(0, i + Math.random()*5, canvas.width, 3);
+            }
+
+            ctx.fillStyle = "#dd0000"; ctx.font = "bold 32px 'Courier New'";
+            ctx.fillText("■ SIGNAL LOST - KASET BOZULDU", 140, 520);
+            document.getElementById("vhsStatus").innerText = "■ STOP";
+        }
+
+        if (currentState === STATES.WIN) {
+            ctx.fillStyle = "#030803"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "#00ff00"; ctx.font = "bold 30px 'Courier New'";
+            ctx.fillText("■ KASET SONU: GIRIZI BAŞARDI", 150, 270);
+            ctx.font = "14px 'Courier New'"; ctx.fillStyle = "#88aaa8";
+            ctx.fillText("Otoyol ışıklarına ulaştın. Arkandaki insan gözleri karanlığa gömüldü.", 115, 320);
+            document.getElementById("vhsStatus").innerText = "■ END";
+        }
+    }
+</script>
+</body>
+</html>
