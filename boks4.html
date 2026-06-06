@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>2D Pro Boxing (Fluid & Accessories Update)</title>
+    <style>
+        /* GENEL VE ARAYÜZ AYARLARI */
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+        body { 
+            background-color: #050505; color: #fff; 
+            font-family: 'Arial Black', Impact, sans-serif;
+            overflow: hidden; touch-action: none;
+        }
+        
+        #game-container { position: relative; width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center; background: #111; }
+        canvas { 
+            box-shadow: 0 0 30px rgba(0,0,0,1); 
+            background: linear-gradient(to bottom, #1a1a2e, #16213e, #0f3460); 
+            border: 2px solid #333;
+        }
+        
+        .screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            background: rgba(0, 0, 0, 0.92); z-index: 20; transition: opacity 0.3s;
+        }
+        .hidden { display: none !important; }
+        
+        h1 { font-size: 4rem; color: #e74c3c; text-transform: uppercase; text-shadow: 3px 3px 0 #000, 0 0 20px #e74c3c; margin-bottom: 5px; text-align: center; line-height: 1.1; }
+        .subtitle { font-size: 1.2rem; color: #aaa; margin-bottom: 15px; font-family: sans-serif; }
+        
+        .btn {
+            background: #c0392b; color: white; border: 2px solid #e74c3c; padding: 15px 40px;
+            font-size: 1.5rem; cursor: pointer; border-radius: 5px; font-family: 'Arial Black', sans-serif;
+            text-transform: uppercase; transition: all 0.2s; box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
+            margin-top: 15px;
+        }
+        .btn:hover { background: #e74c3c; transform: translateY(-3px); box-shadow: 0 8px 25px rgba(231, 76, 60, 0.6); }
+
+        /* SEÇİM ARAYÜZÜ */
+        .selector-box { display: flex; justify-content: space-between; width: 80%; max-width: 800px; margin: 10px 0; background: rgba(255,255,255,0.05); border-radius: 10px; padding: 15px; border: 1px solid #333; }
+        .p-select { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 45%; }
+        .p1-title { color: #e74c3c; font-size: 1.3rem;} .p2-title { color: #3498db; font-size: 1.3rem;}
+        .selector-controls { display: flex; align-items: center; gap: 10px; }
+        .sel-btn { background: #333; color: white; border: none; padding: 5px 15px; font-size: 1.2rem; cursor: pointer; border-radius: 5px; }
+        .sel-btn:hover { background: #555; }
+        .item-name { font-family: sans-serif; font-size: 1rem; min-width: 130px; text-align: center; color: #f1c40f;}
+
+        /* HUD */
+        #hud { position: absolute; top: 20px; width: 100%; max-width: 900px; display: flex; justify-content: space-between; padding: 0 20px; pointer-events: none; z-index: 10; }
+        .player-hud { width: 38%; }
+        .p-name { font-size: 1.5rem; margin-bottom: 5px; text-shadow: 2px 2px 0 #000; letter-spacing: 1px; }
+        .bar-bg { width: 100%; background: #222; border: 2px solid #555; border-radius: 4px; margin-bottom: 6px; }
+        .hp-bar { height: 22px; background: linear-gradient(90deg, #c0392b, #e74c3c); transition: width 0.1s ease-out; }
+        .stamina-bar { height: 10px; background: linear-gradient(90deg, #2980b9, #3498db); transition: width 0.1s linear; }
+        .cd-bar-bg { width: 50%; height: 6px; background: #111; border: 1px solid #444; border-radius: 3px; float: left; overflow: hidden; }
+        .p2-cd { float: right; }
+        .cd-bar { height: 100%; background: #f39c12; width: 100%; }
+        
+        .hud-center { display: flex; flex-direction: column; align-items: center; width: 20%; }
+        #round-display { font-size: 2.5rem; color: #f1c40f; text-shadow: 2px 2px 0 #000; }
+        .score-container { display: flex; gap: 10px; margin-top: 5px; }
+        .score-dots { display: flex; gap: 5px; }
+        .dot { width: 15px; height: 15px; background: #333; border: 2px solid #555; transform: rotate(45deg); }
+        .dot.won { background: #f1c40f; border-color: #fff; box-shadow: 0 0 10px #f1c40f; }
+
+        #flash-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: white; opacity: 0; pointer-events: none; z-index: 15; }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="main-menu" class="screen">
+        <h1>2D PRO BOXING</h1>
+        <div class="subtitle">FLUID ANIMATIONS & ACCESSORY SYSTEM</div>
+        
+        <!-- Kostüm Seçimi -->
+        <div class="selector-box">
+            <div class="p-select">
+                <h3 class="p1-title">OYUNCU 1 (Sol)</h3>
+                <div class="selector-controls">
+                    <button class="sel-btn" onclick="changeItem(1, 'costume', -1)">◄</button>
+                    <span class="item-name" id="p1-costume-text">Klasik Kırmızı</span>
+                    <button class="sel-btn" onclick="changeItem(1, 'costume', 1)">►</button>
+                </div>
+            </div>
+            <div class="p-select">
+                <h3 class="p2-title">OYUNCU 2 (Sağ)</h3>
+                <div class="selector-controls">
+                    <button class="sel-btn" onclick="changeItem(2, 'costume', -1)">◄</button>
+                    <span class="item-name" id="p2-costume-text">Klasik Mavi</span>
+                    <button class="sel-btn" onclick="changeItem(2, 'costume', 1)">►</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Aksesuar Seçimi YENİ -->
+        <div class="selector-box" style="margin-top: 0;">
+            <div class="p-select">
+                <div class="selector-controls">
+                    <button class="sel-btn" onclick="changeItem(1, 'acc', -1)">◄</button>
+                    <span class="item-name" id="p1-acc-text" style="color:#2ecc71;">Aksesuar: Yok</span>
+                    <button class="sel-btn" onclick="changeItem(1, 'acc', 1)">►</button>
+                </div>
+            </div>
+            <div class="p-select">
+                <div class="selector-controls">
+                    <button class="sel-btn" onclick="changeItem(2, 'acc', -1)">◄</button>
+                    <span class="item-name" id="p2-acc-text" style="color:#2ecc71;">Aksesuar: Yok</span>
+                    <button class="sel-btn" onclick="changeItem(2, 'acc', 1)">►</button>
+                </div>
+            </div>
+        </div>
+
+        <button class="btn" onclick="startGame()">RİNGE ÇIK!</button>
+        <div style="color:#888; margin-top:20px; font-family:sans-serif; font-size:12px;">Kontroller değişmedi: Hareket (A/D & Yön), Yumruk (F/G & L/K), Aparkat (V & M), Blok (S & Virgül)</div>
+    </div>
+
+    <div id="game-over-screen" class="screen hidden">
+        <h1 id="winner-text" style="font-size: 5rem;">K.O.</h1>
+        <button class="btn" onclick="returnToMenu()">Ana Menü</button>
+    </div>
+
+    <div id="flash-screen"></div>
+
+    <!-- HUD -->
+    <div id="hud" class="hidden">
+        <div class="player-hud">
+            <div class="p-name" style="color: #e74c3c;">OYUNCU 1</div>
+            <div class="bar-bg"><div id="p1-hp" class="hp-bar"></div></div>
+            <div class="bar-bg"><div id="p1-stamina" class="stamina-bar"></div></div>
+            <div class="cd-bar-bg"><div id="p1-upper-cd" class="cd-bar"></div></div>
+        </div>
+        <div class="hud-center">
+            <div id="round-display">R1</div>
+            <div class="score-container">
+                <div id="p1-score" class="score-dots"><div class="dot"></div><div class="dot"></div></div>
+                <div id="p2-score" class="score-dots"><div class="dot"></div><div class="dot"></div></div>
+            </div>
+        </div>
+        <div class="player-hud" style="text-align: right;">
+            <div class="p-name" style="color: #3498db;">OYUNCU 2</div>
+            <div class="bar-bg"><div id="p2-hp" class="hp-bar" style="float: right;"></div></div>
+            <div class="bar-bg"><div id="p2-stamina" class="stamina-bar" style="float: right;"></div></div>
+            <div class="cd-bar-bg p2-cd"><div id="p2-upper-cd" class="cd-bar" style="float: right;"></div></div>
+        </div>
+    </div>
+
+    <canvas id="gameCanvas" width="900" height="500"></canvas>
+</div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+let isGameRunning = false;
+let lastTime = 0;
+let globalTime = 0;
+let shakeAmount = 0;
+
+// YENİ: Impact Frame ve Seyirci Coşkusu
+let hitStopTimer = 0; 
+let crowdHype = 0; 
+
+let currentRound = 1;
+let p1Wins = 0, p2Wins = 0;
+let roundOver = false;
+
+// YARDIMCI MATEMATİKSEL FONKSİYONLAR (Akıcı Animasyonlar İçin)
+const lerp = (a, b, t) => a + (b - a) * t;
+// Sine ease in-out
+const easeInOut = t => -(Math.cos(Math.PI * t) - 1) / 2;
+
+// --- VERİLER ---
+const costumes = [
+    { name: "Klasik Kırmızı", skin: '#d2a679', shorts: '#c0392b', gloves: '#e74c3c', shoes: '#222' },
+    { name: "Klasik Mavi", skin: '#d2a679', shorts: '#2980b9', gloves: '#3498db', shoes: '#222' },
+    { name: "Sokak Dövüşçüsü", skin: '#8d5524', shorts: '#27ae60', gloves: '#2ecc71', shoes: '#555' },
+    { name: "Şampiyon", skin: '#f1c27d', shorts: '#111', gloves: '#f1c40f', shoes: '#f39c12' }
+];
+const accessories = [
+    { id: 'none', name: "Yok" },
+    { id: 'hat', name: "Kasket Şapka" },
+    { id: 'bandana', name: "Ninja Bandana" },
+    { id: 'glasses', name: "Güneş Gözlüğü" },
+    { id: 'tattoo', name: "Kol Dövmesi" },
+    { id: 'mask', name: "Yarım Maske" }
+];
+
+let p1CostumeIdx = 0, p2CostumeIdx = 1;
+let p1AccIdx = 0, p2AccIdx = 0;
+
+function changeItem(player, type, dir) {
+    if (type === 'costume') {
+        if (player === 1) { p1CostumeIdx = (p1CostumeIdx + dir + costumes.length) % costumes.length; document.getElementById('p1-costume-text').innerText = costumes[p1CostumeIdx].name; }
+        else { p2CostumeIdx = (p2CostumeIdx + dir + costumes.length) % costumes.length; document.getElementById('p2-costume-text').innerText = costumes[p2CostumeIdx].name; }
+    } else {
+        if (player === 1) { p1AccIdx = (p1AccIdx + dir + accessories.length) % accessories.length; document.getElementById('p1-acc-text').innerText = "Aksesuar: " + accessories[p1AccIdx].name; }
+        else { p2AccIdx = (p2AccIdx + dir + accessories.length) % accessories.length; document.getElementById('p2-acc-text').innerText = "Aksesuar: " + accessories[p2AccIdx].name; }
+    }
+}
+
+const keys = {};
+window.addEventListener('keydown', (e) => { keys[e.key.toLowerCase()] = true; });
+window.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });
+
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playSound(type) {
+    if(audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    const now = audioCtx.currentTime;
+
+    if (type === 'hit_light') {
+        osc.type = 'square'; osc.frequency.setValueAtTime(300, now); osc.frequency.exponentialRampToValueAtTime(100, now + 0.1);
+        gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+        osc.start(now); osc.stop(now + 0.1);
+    } else if (type === 'hit_heavy' || type === 'hit_upper') {
+        osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now); osc.frequency.exponentialRampToValueAtTime(40, now + 0.2);
+        gain.gain.setValueAtTime(0.6, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+        osc.start(now); osc.stop(now + 0.2);
+    } else if (type === 'whiff') {
+        osc.type = 'sine'; osc.frequency.setValueAtTime(800, now); osc.frequency.exponentialRampToValueAtTime(200, now + 0.15);
+        gain.gain.setValueAtTime(0.1, now); gain.gain.linearRampToValueAtTime(0, now + 0.15);
+        osc.start(now); osc.stop(now + 0.15);
+    } else if (type === 'block') {
+        osc.type = 'triangle'; osc.frequency.setValueAtTime(600, now);
+        gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0, now + 0.1);
+        osc.start(now); osc.stop(now + 0.1);
+    }
+}
+
+function triggerShake(intensity) { shakeAmount = intensity; }
+function triggerFlash() {
+    const flash = document.getElementById('flash-screen');
+    flash.style.opacity = '0.7'; setTimeout(() => { flash.style.opacity = '0'; }, 50);
+}
+
+// YENİ: Dinamik Seyirci Sistemi
+const crowd = [];
+for(let i=0; i<35; i++) {
+    crowd.push({
+        x: Math.random() * canvas.width,
+        yOffset: Math.random() * 20,
+        size: 0.7 + Math.random() * 0.5,
+        phase: Math.random() * Math.PI * 2,
+        speed: 2 + Math.random() * 3,
+        color: `rgba(${30+Math.random()*40}, ${30+Math.random()*40}, ${50+Math.random()*50}, 0.8)`
+    });
+}
+
+function drawBackground() {
+    ctx.fillStyle = '#111'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Seyircileri Çiz
+    ctx.save();
+    for (let c of crowd) {
+        // Coşku (Hype) arttıkça zıplama hızları ve yükseklikleri artar
+        let currentSpeed = c.speed + (crowdHype * 10);
+        let bounce = Math.sin(globalTime * currentSpeed + c.phase) * (5 + crowdHype * 15);
+        if (bounce < 0) bounce = 0; // Sadece yukarı zıpla
+        
+        let basex = c.x;
+        let basey = canvas.height - 150 + c.yOffset - bounce;
+
+        ctx.fillStyle = c.color;
+        // Gövde
+        ctx.beginPath(); ctx.roundRect(basex - 15*c.size, basey, 30*c.size, 60*c.size, 10*c.size); ctx.fill();
+        // Kafa
+        ctx.beginPath(); ctx.arc(basex, basey - 15*c.size, 15*c.size, 0, Math.PI*2); ctx.fill();
+        
+        // Coşkuluysa kollarını havaya kaldır
+        if (crowdHype > 0.5 && Math.sin(globalTime * 15 + c.phase) > 0) {
+            ctx.fillRect(basex - 25*c.size, basey - 30*c.size, 8*c.size, 25*c.size); // Sol kol
+            ctx.fillRect(basex + 17*c.size, basey - 30*c.size, 8*c.size, 25*c.size); // Sağ kol
+        }
+    }
+    ctx.restore();
+
+    // Ring İpleri
+    ctx.strokeStyle = '#c0392b'; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(0, canvas.height - 180); ctx.lineTo(canvas.width, canvas.height - 180); ctx.stroke();
+    ctx.strokeStyle = '#fff';
+    ctx.beginPath(); ctx.moveTo(0, canvas.height - 120); ctx.lineTo(canvas.width, canvas.height - 120); ctx.stroke();
+    ctx.strokeStyle = '#2980b9';
+    ctx.beginPath(); ctx.moveTo(0, canvas.height - 60); ctx.lineTo(canvas.width, canvas.height - 60); ctx.stroke();
+
+    ctx.fillStyle = '#222'; ctx.fillRect(0, canvas.height - 40, canvas.width, 40);
+}
+
+/**
+ * FIGHTER SINIFI
+ */
+class Fighter {
+    constructor(x, y, isPlayer1, costume, accId) {
+        this.x = x; this.y = y;
+        this.isPlayer1 = isPlayer1; this.facingRight = isPlayer1;
+        this.width = 60; this.height = 180; this.groundY = canvas.height - 40;
+        this.velocityX = 0; this.velocityY = 0;
+        this.speed = 250; this.gravity = 1200; this.jumpPower = -450; 
+        this.maxHp = 100; this.hp = 100;
+        this.maxStamina = 100; this.stamina = 100;
+        this.maxUpperCooldown = 4.0; this.upperCooldownTimer = 0;
+        this.state = 'idle'; 
+        this.stateDuration = 0; // Animasyonun toplam süresi
+        this.stateTimer = 0;    // Kalan süre
+        this.animTime = 0; 
+        this.attackBox = { x: 0, y: 0, w: 50, h: 40, active: false, damage: 0, type: '' };
+        this.hasHit = false; 
+
+        this.colors = { skin: costume.skin, shorts: costume.shorts, gloves: costume.gloves, shoes: costume.shoes };
+        this.accessory = accId;
+    }
+
+    update(dt, opponent) {
+        if (this.state === 'ko') return;
+        this.animTime += dt;
+
+        if (this.upperCooldownTimer > 0) this.upperCooldownTimer = Math.max(0, this.upperCooldownTimer - dt);
+
+        if (['idle', 'walk', 'block'].includes(this.state)) {
+            this.facingRight = (this.x + this.width/2) < (opponent.x + opponent.width/2);
+        }
+
+        this.velocityY += this.gravity * dt;
+        this.y += this.velocityY * dt;
+        if (this.y + this.height >= this.groundY) { this.y = this.groundY - this.height; this.velocityY = 0; }
+
+        if (['idle', 'walk'].includes(this.state)) {
+            this.stamina = Math.min(this.maxStamina, this.stamina + 20 * dt);
+        }
+
+        if (this.stateTimer > 0) {
+            this.stateTimer -= dt;
+            if (this.stateTimer <= 0) {
+                this.state = 'idle'; this.attackBox.active = false;
+            }
+        }
+
+        if (this.attackBox.active) {
+            this.attackBox.x = this.facingRight ? this.x + this.width/2 : this.x + this.width/2 - this.attackBox.w;
+            if (this.attackBox.type === 'upper') { this.attackBox.y = this.y + 10; this.attackBox.w = 40; } 
+            else { this.attackBox.y = this.y + (this.attackBox.type === 'heavy' ? 20 : 50); this.attackBox.w = 50; }
+
+            if (!this.hasHit && this.checkCollision(this.attackBox, opponent)) {
+                opponent.takeDamage(this.attackBox.damage, this.attackBox.type, this.facingRight ? 1 : -1);
+                this.hasHit = true;
+            }
+        }
+
+        if (this.x < 20) this.x = 20;
+        if (this.x + this.width > canvas.width - 20) this.x = canvas.width - this.width - 20;
+    }
+
+    preventOverlap(opponent) {
+        if (this.state === 'ko' || opponent.state === 'ko') return;
+        let c1 = this.x + this.width/2; let c2 = opponent.x + opponent.width/2;
+        let dist = Math.abs(c1 - c2); let minDist = 50; 
+        if (dist < minDist) {
+            let push = (minDist - dist) / 2;
+            if (c1 < c2) { this.x -= push; opponent.x += push; }
+            else { this.x += push; opponent.x -= push; }
+        }
+    }
+
+    handleInput(dt) {
+        if (this.state === 'ko' || this.state === 'hit' || roundOver) return;
+
+        this.velocityX = 0;
+        let k = this.isPlayer1 ? 
+            { l: 'a', r: 'd', j: 'w', blk: 's', l_punch: 'f', h_punch: 'g', upper: 'v' } : 
+            { l: 'arrowleft', r: 'arrowright', j: 'arrowup', blk: ',', l_punch: 'l', h_punch: 'k', upper: 'm' };
+
+        if (['idle', 'walk'].includes(this.state)) {
+            if (keys[k.blk] && this.stamina > 5) { this.state = 'block'; return; }
+            if (keys[k.upper] && this.stamina >= 35 && this.upperCooldownTimer === 0) { this.attack('upper', 0.6); return; }
+            if (keys[k.l_punch] && this.stamina >= 10) { this.attack('light', 0.3); return; }
+            if (keys[k.h_punch] && this.stamina >= 25) { this.attack('heavy', 0.5); return; }
+
+            if (keys[k.l]) { this.velocityX = -this.speed; this.state = 'walk'; }
+            else if (keys[k.r]) { this.velocityX = this.speed; this.state = 'walk'; }
+            else { this.state = 'idle'; }
+
+            if (keys[k.j] && this.y + this.height >= this.groundY) {
+                this.velocityY = this.jumpPower;
+                if ((keys[k.l] && this.facingRight) || (keys[k.r] && !this.facingRight)) {
+                    this.velocityX = this.facingRight ? -this.speed * 1.5 : this.speed * 1.5;
+                }
+            }
+        } else if (this.state === 'block') {
+            if (!keys[k.blk]) this.state = 'idle';
+        }
+        this.x += this.velocityX * dt;
+    }
+
+    attack(type, duration) {
+        this.state = type;
+        this.stateDuration = duration;
+        this.stateTimer = duration;
+        this.attackBox.type = type;
+        this.hasHit = false;
+        
+        if (type === 'light') {
+            this.stamina -= 10; this.attackBox.damage = 6; playSound('whiff');
+            setTimeout(() => { if (this.state === 'light') this.attackBox.active = true; }, duration * 300);
+            setTimeout(() => { this.attackBox.active = false; }, duration * 600);
+        } else if (type === 'heavy') {
+            this.stamina -= 25; this.attackBox.damage = 18; playSound('whiff');
+            setTimeout(() => { if (this.state === 'heavy') this.attackBox.active = true; }, duration * 500);
+            setTimeout(() => { this.attackBox.active = false; }, duration * 800);
+        } else if (type === 'upper') {
+            this.stamina -= 35; this.attackBox.damage = 25; this.upperCooldownTimer = this.maxUpperCooldown; playSound('whiff');
+            setTimeout(() => { if (this.state === 'upper') this.attackBox.active = true; }, duration * 500);
+            setTimeout(() => { this.attackBox.active = false; }, duration * 750);
+        }
+    }
+
+    takeDamage(amount, type, dir) {
+        if (this.state === 'ko') return;
+
+        if (this.state === 'block') {
+            amount = Math.floor(amount * 0.25); this.stamina -= 15; playSound('block'); this.x += dir * 15; 
+        } else {
+            this.state = 'hit';
+            this.stateDuration = (type === 'light') ? 0.2 : (type === 'upper' ? 0.6 : 0.4);
+            this.stateTimer = this.stateDuration;
+            this.x += dir * (type === 'light' ? 20 : 40); 
+            
+            // YENİ: Impact Frame ve Hype (Vuruş Duraksaması ve Coşku)
+            hitStopTimer = type === 'light' ? 0.05 : 0.1; // Oyun çok kısa süreliğine ağır çekime girer/durur
+            crowdHype = Math.min(2.0, crowdHype + 0.6); // Seyirciler coşar
+
+            if (type === 'upper') {
+                this.velocityY = -350; triggerShake(18); triggerFlash(); playSound('hit_upper');
+            } else if (type === 'heavy') {
+                triggerShake(12); triggerFlash(); playSound('hit_heavy');
+            } else {
+                triggerShake(4); playSound('hit_light');
+            }
+        }
+
+        this.hp -= amount;
+        if (this.hp <= 0) { this.hp = 0; this.state = 'ko'; triggerShake(20); crowdHype = 3.0; checkRoundWinner(); }
+    }
+
+    checkCollision(box, opp) {
+        return (box.x < opp.x + opp.width && box.x + box.w > opp.x && box.y < opp.y + opp.height && box.y + box.h > opp.y);
+    }
+
+    // YENİ: FRAME/TIME BASED MATEMATİKSEL ANİMASYON MOTORU
+    draw(ctx) {
+        ctx.save();
+        let cx = this.x + this.width / 2; let cy = this.y + this.height / 2;
+        ctx.translate(cx, cy);
+
+        let dir = this.facingRight ? 1 : -1; ctx.scale(dir, 1);
+
+        let angles = { torso: 0, head: 0, frontArm: { shoulder: 0, elbow: 0 }, backArm: { shoulder: 0, elbow: 0 }, frontLeg: { hip: 0, knee: 0 }, backLeg: { hip: 0, knee: 0 } };
+        let walkCycle = Math.sin(this.animTime * 10);
+        let breathCycle = Math.sin(this.animTime * 3) * 0.05;
+        
+        let p = 0; // Animasyon ilerleme yüzdesi (0'dan 1'e)
+
+        if (this.state === 'idle') {
+            angles.torso = 0.1 + breathCycle; angles.head = -0.1;
+            angles.frontArm = { shoulder: -0.5, elbow: -1.5 }; angles.backArm = { shoulder: -0.2, elbow: -1.8 };
+            angles.frontLeg = { hip: 0.2, knee: 0.1 }; angles.backLeg = { hip: -0.2, knee: 0.2 };
+        } 
+        else if (this.state === 'walk') {
+            angles.torso = 0.2;
+            angles.frontArm = { shoulder: -0.5 + walkCycle*0.2, elbow: -1.5 }; angles.backArm = { shoulder: -0.2 - walkCycle*0.2, elbow: -1.8 };
+            angles.frontLeg = { hip: walkCycle * 0.5, knee: Math.abs(walkCycle)*0.5 }; angles.backLeg = { hip: -walkCycle * 0.5, knee: Math.abs(walkCycle)*0.5 };
+        }
+        else if (this.state === 'block') {
+            angles.torso = 0.3; angles.head = 0.2;
+            angles.frontArm = { shoulder: -1.2, elbow: -2.0 }; angles.backArm = { shoulder: -1.0, elbow: -2.2 };
+            angles.frontLeg = { hip: 0.3, knee: 0.3 }; angles.backLeg = { hip: -0.3, knee: 0.3 };
+        }
+        else if (this.state === 'light') {
+            p = 1 - (this.stateTimer / this.stateDuration); // 0 -> 1
+            let ext = Math.sin(p * Math.PI); // 0 -> 1 -> 0 (Yumruk uzanır ve geri döner)
+            
+            angles.torso = lerp(0.1, 0.4, ext); // Gövde yumruk atarken döner
+            angles.head = lerp(-0.1, 0.1, ext);
+            angles.frontArm.shoulder = lerp(-0.5, -1.6, ext);
+            angles.frontArm.elbow = lerp(-1.5, -0.1, ext);
+            angles.backArm.shoulder = lerp(-0.2, 0.2, ext);
+        }
+        else if (this.state === 'heavy') {
+            p = 1 - (this.stateTimer / this.stateDuration);
+            if (p < 0.3) { // Güç toplama (Geri çekilme)
+                let t = easeInOut(p / 0.3);
+                angles.torso = lerp(0.1, -0.3, t);
+                angles.frontArm.shoulder = lerp(-0.5, 0, t);
+                angles.backArm.shoulder = lerp(-0.2, 1.2, t);
+                angles.backArm.elbow = lerp(-1.8, -1.0, t);
+            } else if (p < 0.5) { // Vuruş
+                let t = easeInOut((p - 0.3) / 0.2);
+                angles.torso = lerp(-0.3, 0.6, t);
+                angles.frontArm.shoulder = lerp(0, -2.2, t); // Tam kavisli savurma
+                angles.frontArm.elbow = lerp(-1.5, -0.3, t);
+                angles.backArm.shoulder = lerp(1.2, -1.0, t);
+            } else { // Toparlanma
+                let t = easeInOut((p - 0.5) / 0.5);
+                angles.torso = lerp(0.6, 0.1, t);
+                angles.frontArm.shoulder = lerp(-2.2, -0.5, t);
+                angles.frontArm.elbow = lerp(-0.3, -1.5, t);
+                angles.backArm.shoulder = lerp(-1.0, -0.2, t);
+                angles.backArm.elbow = lerp(-1.0, -1.8, t);
+            }
+        }
+        else if (this.state === 'upper') {
+            p = 1 - (this.stateTimer / this.stateDuration);
+            if (p < 0.3) { // Çömelme
+                let t = easeInOut(p / 0.3);
+                angles.torso = lerp(0.1, 0.6, t); angles.head = lerp(-0.1, -0.4, t);
+                angles.frontLeg.hip = lerp(0.2, 0.5, t); angles.frontLeg.knee = lerp(0.1, 0.8, t);
+                angles.backLeg.hip = lerp(-0.2, -0.5, t); angles.backLeg.knee = lerp(0.2, 0.8, t);
+                ctx.translate(0, lerp(0, 20, t));
+                angles.frontArm.shoulder = lerp(-0.5, 1.0, t);
+                angles.frontArm.elbow = lerp(-1.5, -1.5, t);
+            } else if (p < 0.5) { // Yukarı Patlama
+                let t = easeInOut((p - 0.3) / 0.2);
+                angles.torso = lerp(0.6, -0.3, t); angles.head = lerp(-0.4, 0.3, t);
+                angles.frontLeg.hip = lerp(0.5, 0, t); angles.frontLeg.knee = lerp(0.8, 0, t);
+                angles.backLeg.hip = lerp(-0.5, 0, t); angles.backLeg.knee = lerp(0.8, 0, t);
+                ctx.translate(0, lerp(20, -10, t)); // Hafif zıplar
+                angles.frontArm.shoulder = lerp(1.0, -2.8, t); // Kol düzleşir
+                angles.frontArm.elbow = lerp(-1.5, -0.5, t);
+            } else { // Toparlanma
+                let t = easeInOut((p - 0.5) / 0.5);
+                angles.torso = lerp(-0.3, 0.1, t); angles.head = lerp(0.3, -0.1, t);
+                ctx.translate(0, lerp(-10, 0, t));
+                angles.frontArm.shoulder = lerp(-2.8, -0.5, t);
+                angles.frontArm.elbow = lerp(-0.5, -1.5, t);
+            }
+        }
+        else if (this.state === 'hit') {
+            p = 1 - (this.stateTimer / this.stateDuration);
+            let twitch = Math.sin(p * Math.PI * 4) * (1-p) * 0.2; // Sarsılma efekti
+            angles.torso = -0.4 + twitch; angles.head = -0.6 + twitch;
+            angles.frontArm = { shoulder: 0.5, elbow: -0.5 }; angles.backArm = { shoulder: 0.8, elbow: -0.8 };
+            if (this.velocityY < -50) angles.torso = -0.8;
+        }
+        else if (this.state === 'ko') {
+            angles.torso = -1.5; angles.head = -0.5;
+            angles.frontArm = { shoulder: 3.14, elbow: 0 }; angles.backArm = { shoulder: 2.5, elbow: 0 };
+            angles.frontLeg = { hip: 0, knee: 0 }; angles.backLeg = { hip: 0, knee: 0 };
+            ctx.translate(0, 60); 
+        }
+
+        // Hasar Morarması
+        let hpRatio = Math.max(0, this.hp / this.maxHp);
+        let bruiseIntensity = (1 - hpRatio) * 0.7; 
+        let bruiseColor = `rgba(100, 20, 100, ${bruiseIntensity})`;
+
+        const drawLimb = (w, h, color, rx, isSkin = false) => {
+            ctx.fillStyle = color; ctx.beginPath(); ctx.roundRect(-w/2, -rx, w, h, w/2); ctx.fill();
+            if (isSkin && bruiseIntensity > 0) { ctx.fillStyle = bruiseColor; ctx.beginPath(); ctx.roundRect(-w/2, -rx, w, h, w/2); ctx.fill(); }
+            ctx.strokeStyle = 'rgba(0,0,0,0.2)'; ctx.lineWidth = 2; ctx.stroke();
+        };
+
+        // Bacaklar
+        ctx.save(); ctx.translate(0, 20); ctx.rotate(angles.backLeg.hip);
+        drawLimb(18, 45, this.colors.shorts, 10); ctx.translate(0, 35); ctx.rotate(angles.backLeg.knee);
+        drawLimb(14, 40, this.colors.skin, 5, true); ctx.fillStyle = this.colors.shoes; ctx.fillRect(-10, 35, 25, 12); ctx.restore();
+
+        // Arka Kol
+        ctx.save(); ctx.translate(0, -50); ctx.rotate(angles.backArm.shoulder);
+        drawLimb(16, 35, this.colors.skin, 8, true); ctx.translate(0, 30); ctx.rotate(angles.backArm.elbow);
+        drawLimb(14, 30, this.colors.skin, 7, true); ctx.fillStyle = this.colors.gloves; ctx.beginPath(); ctx.arc(0, 30, 16, 0, Math.PI*2); ctx.fill(); ctx.restore();
+
+        // Gövde
+        ctx.save(); ctx.rotate(angles.torso);
+        ctx.fillStyle = this.colors.skin; ctx.beginPath(); ctx.roundRect(-20, -60, 40, 60, 10); ctx.fill();
+        if(bruiseIntensity > 0) { ctx.fillStyle = bruiseColor; ctx.beginPath(); ctx.ellipse(-5, -30, 12, 18, Math.PI/4, 0, Math.PI*2); ctx.fill(); }
+        ctx.fillStyle = this.colors.shorts; ctx.beginPath(); ctx.roundRect(-22, -10, 44, 40, 5); ctx.fill();
+        ctx.fillStyle = '#fff'; ctx.fillRect(-22, -10, 44, 8);
+
+        // Kafa ve AKSESUARLAR (Head based)
+        ctx.save(); ctx.translate(0, -65); ctx.rotate(angles.head);
+        ctx.fillStyle = this.colors.skin; ctx.beginPath(); ctx.arc(0, -15, 18, 0, Math.PI*2); ctx.fill(); ctx.fillRect(0, -20, 15, 20); 
+        if(bruiseIntensity > 0) { ctx.fillStyle = bruiseColor; ctx.beginPath(); ctx.arc(8, -15, 6, 0, Math.PI*2); ctx.fill(); }
+        ctx.fillStyle = '#000'; ctx.fillRect(8, -22, 4, 4); 
+        ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(-2, -25, 18, Math.PI, Math.PI*2); ctx.fill(); // Saç
+        
+        // YENİ: Baş Aksesuarları Çizimi
+        if (this.accessory === 'hat') {
+            ctx.fillStyle = '#222'; ctx.fillRect(-22, -30, 44, 6); // Siperlik
+            ctx.fillRect(-12, -45, 24, 15); // Tepe
+        } else if (this.accessory === 'bandana') {
+            ctx.fillStyle = '#c0392b'; ctx.fillRect(-18, -26, 36, 6);
+            ctx.beginPath(); ctx.moveTo(-18, -23); ctx.lineTo(-28, -15); ctx.lineTo(-26, -26); ctx.fill(); // Düğüm Kuyruğu
+        } else if (this.accessory === 'glasses') {
+            ctx.fillStyle = '#111'; ctx.fillRect(0, -23, 16, 5); // Çerçeve
+            ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.fillRect(3, -22, 5, 3); ctx.fillRect(10, -22, 5, 3); // Cam parlama
+        } else if (this.accessory === 'mask') {
+            ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(2, -8, 12, Math.PI, 0); ctx.fill(); // Ağız kapama
+        }
+        ctx.restore(); 
+        ctx.restore(); 
+
+        // Ön Bacak
+        ctx.save(); ctx.translate(10, 20); ctx.rotate(angles.frontLeg.hip);
+        drawLimb(18, 45, this.colors.shorts, 10); ctx.translate(0, 35); ctx.rotate(angles.frontLeg.knee);
+        drawLimb(14, 40, this.colors.skin, 5, true); ctx.fillStyle = this.colors.shoes; ctx.fillRect(-5, 35, 25, 12); ctx.restore();
+
+        // Ön Kol ve DÖVME (Arm based)
+        ctx.save(); ctx.translate(15, -50); ctx.rotate(angles.frontArm.shoulder);
+        drawLimb(18, 35, this.colors.skin, 8, true);
+        
+        // YENİ: Dövme Aksesuarı
+        if (this.accessory === 'tattoo') {
+            ctx.strokeStyle = '#2c3e50'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(-6, -5); ctx.lineTo(6, 5); ctx.lineTo(-6, 15); ctx.lineTo(6, 25); ctx.stroke();
+        }
+
+        ctx.translate(0, 30); ctx.rotate(angles.frontArm.elbow);
+        drawLimb(16, 30, this.colors.skin, 7, true);
+        ctx.fillStyle = this.colors.gloves; ctx.beginPath(); ctx.arc(0, 30, 18, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.beginPath(); ctx.arc(-4, 26, 8, 0, Math.PI*2); ctx.fill(); 
+        ctx.restore();
+
+        ctx.restore(); 
+    }
+}
+
+// --- YÖNETİM ---
+let p1, p2;
+
+function initGame() {
+    p1 = new Fighter(150, 0, true, costumes[p1CostumeIdx], accessories[p1AccIdx].id);
+    p2 = new Fighter(700, 0, false, costumes[p2CostumeIdx], accessories[p2AccIdx].id);
+    roundOver = false; document.getElementById('round-display').innerText = `R${currentRound}`; updateUI();
+}
+
+function startGame() {
+    document.getElementById('main-menu').classList.add('hidden');
+    document.getElementById('game-over-screen').classList.add('hidden');
+    document.getElementById('hud').classList.remove('hidden');
+    
+    currentRound = 1; p1Wins = 0; p2Wins = 0; crowdHype = 0;
+    updateScore(); initGame();
+    
+    if(!isGameRunning) { isGameRunning = true; lastTime = performance.now(); requestAnimationFrame(gameLoop); }
+}
+
+function returnToMenu() {
+    isGameRunning = false;
+    document.getElementById('game-over-screen').classList.add('hidden');
+    document.getElementById('hud').classList.add('hidden');
+    document.getElementById('main-menu').classList.remove('hidden');
+}
+
+function updateUI() {
+    document.getElementById('p1-hp').style.width = p1.hp + '%'; document.getElementById('p1-stamina').style.width = p1.stamina + '%';
+    let p1CdPct = (1 - (p1.upperCooldownTimer / p1.maxUpperCooldown)) * 100; document.getElementById('p1-upper-cd').style.width = p1CdPct + '%'; document.getElementById('p1-upper-cd').style.background = p1CdPct === 100 ? '#f39c12' : '#555';
+
+    document.getElementById('p2-hp').style.width = p2.hp + '%'; document.getElementById('p2-stamina').style.width = p2.stamina + '%';
+    let p2CdPct = (1 - (p2.upperCooldownTimer / p2.maxUpperCooldown)) * 100; document.getElementById('p2-upper-cd').style.width = p2CdPct + '%'; document.getElementById('p2-upper-cd').style.background = p2CdPct === 100 ? '#f39c12' : '#555';
+}
+
+function updateScore() {
+    const p1D = document.getElementById('p1-score').children; const p2D = document.getElementById('p2-score').children;
+    for(let i=0; i<2; i++) { p1D[i].className = i < p1Wins ? 'dot won' : 'dot'; p2D[i].className = i < p2Wins ? 'dot won' : 'dot'; }
+}
+
+function checkRoundWinner() {
+    if (roundOver) return; roundOver = true;
+    let txt = "";
+    if (p2.hp <= 0) { p1Wins++; txt = "P1 ALDI!"; } else if (p1.hp <= 0) { p2Wins++; txt = "P2 ALDI!"; }
+    updateScore(); document.getElementById('round-display').innerText = txt;
+
+    setTimeout(() => {
+        if (p1Wins >= 2 || p2Wins >= 2) {
+            isGameRunning = false; document.getElementById('hud').classList.add('hidden');
+            document.getElementById('game-over-screen').classList.remove('hidden');
+            document.getElementById('winner-text').innerHTML = `K.O.<br><span style="font-size:2rem">${p1Wins >= 2 ? 'OYUNCU 1' : 'OYUNCU 2'} KAZANDI</span>`;
+        } else { currentRound++; initGame(); }
+    }, 3000);
+}
+
+function gameLoop(time) {
+    if (!isGameRunning) return;
+    
+    // Gerçek zaman farkı
+    let realDt = (time - lastTime) / 1000;
+    if (realDt > 0.1) realDt = 0.1;
+    lastTime = time;
+    globalTime += realDt;
+
+    // YENİ: Impact Frame (Zamanı Yavaşlatma/Dondurma)
+    let physicsDt = realDt;
+    if (hitStopTimer > 0) {
+        hitStopTimer -= realDt;
+        physicsDt = 0.002; // Vuruş anında oyun çok ciddi yavaşlar (Freeze efekti)
+    }
+
+    // Seyirci Coşkusu Azalması
+    if (crowdHype > 0) crowdHype = Math.max(0, crowdHype - realDt * 0.5);
+
+    p1.handleInput(physicsDt); p2.handleInput(physicsDt);
+    p1.update(physicsDt, p2);  p2.update(physicsDt, p1);
+    p1.preventOverlap(p2);
+    
+    updateUI();
+
+    ctx.save();
+    if (shakeAmount > 0) {
+        ctx.translate((Math.random()-0.5)*shakeAmount, (Math.random()-0.5)*shakeAmount);
+        shakeAmount *= 0.9; if(shakeAmount < 0.5) shakeAmount = 0;
+    }
+
+    drawBackground();
+    
+    if(p1.state === 'ko') { p1.draw(ctx); p2.draw(ctx); }
+    else if(p2.state === 'ko') { p2.draw(ctx); p1.draw(ctx); }
+    else { p1.draw(ctx); p2.draw(ctx); }
+
+    ctx.restore();
+    requestAnimationFrame(gameLoop);
+}
+</script>
+</body>
+</html>
