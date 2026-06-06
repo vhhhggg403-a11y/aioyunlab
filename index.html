@@ -363,6 +363,36 @@
         desc: "Yapay zeka aklındaki kişiyi, nesneyi veya hayvanı 20 soruda tahmin ediyor! Aklından bir şey tut, bilsin mi?",
         file: "akin4.html",
         emoji: "🧞"
+      },
+      {
+        name: "2D Pro Boxing",
+        desc: "Akıcı animasyonlar ve aksesuar sistemi ile gerçekçi 2D boks oyunu. Rakibini ring'de yere ser!",
+        file: "boks4.html",
+        emoji: "🥊"
+      },
+      {
+        name: "Neon Kaçış",
+        desc: "Neon ışıklı labirentte düşmanlardan kaç, engelleri aş! Reflekslerini test eden hızlı kaçış oyunu.",
+        file: "tank.html",
+        emoji: "🚀"
+      },
+      {
+        name: "Neon Kaçış: Overdrive",
+        desc: "Online multiplayer destekli Neon Kaçış! Arkadaşlarınla aynı anda oyna, kim daha uzun hayatta kalır?",
+        file: "jok4.html",
+        emoji: "⚡"
+      },
+      {
+        name: "Kayıp Kaset: Gırizi Olayı",
+        desc: "Analog korku deneyimi. Eski kaset görüntüleri, gizemli sinyaller ve açıklanamayan olaylar seni bekliyor. Işıkları kapat...",
+        file: "elma.html",
+        emoji: "📼"
+      },
+      {
+        name: "Block Blast Adventure",
+        desc: "Blokları yerleştir, satırları temizle, rekor kır! Sürükleyici bulmaca macerası seni bekliyor.",
+        file: "bloc.html",
+        emoji: "🟦"
       }
     ];
 
@@ -843,6 +873,189 @@
         showToast(`"${name}" silindi.`, 'info');
         updateStats();
       }
+    };
+
+    // ════════════════════════════════════════════════════════════
+    //  GITHUB API + GAMES.JSON SİSTEMİ
+    //  Oyunlar artık GitHub'daki games.json'a kaydedilir →
+    //  Vercel otomatik deploy eder → Herkes görür!
+    // ════════════════════════════════════════════════════════════
+
+    const GH_OWNER = 'VHHHGGG403-A11Y';
+    const GH_REPO  = 'aioyunlab';
+    const GH_FILE  = 'games.json';
+
+    function getGHToken() { return localStorage.getItem('aio_gh_token') || ''; }
+
+    // ── GitHub'a games.json yaz ───────────────────────────────
+    async function saveGamesToGitHub(gamesArray) {
+      const token = getGHToken();
+      if (!token) {
+        showToast('GitHub token girilmedi! Admin → ⚙️ Ayarlar bölümüne bak.', 'error', 4000);
+        return false;
+      }
+      showToast('GitHub\'a kaydediliyor…', 'info', 2000);
+      try {
+        const headers = {
+          'Authorization': 'token ' + token,
+          'Accept': 'application/vnd.github.v3+json',
+          'Content-Type': 'application/json'
+        };
+        // Mevcut dosyanın SHA'sını al
+        let sha = null;
+        const getR = await fetch(
+          `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_FILE}`,
+          { headers }
+        );
+        if (getR.ok) { sha = (await getR.json()).sha; }
+
+        // Dosyayı güncelle / oluştur
+        const body = {
+          message: '🎮 Admin: oyun listesi güncellendi',
+          content: btoa(unescape(encodeURIComponent(JSON.stringify(gamesArray, null, 2)))),
+          ...(sha ? { sha } : {})
+        };
+        const putR = await fetch(
+          `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_FILE}`,
+          { method: 'PUT', headers, body: JSON.stringify(body) }
+        );
+        if (putR.ok) {
+          showToast('✅ GitHub\'a kaydedildi! ~30 saniye içinde herkes görecek 🚀', 'success', 5000);
+          return true;
+        } else {
+          const err = await putR.json();
+          showToast('❌ GitHub hatası: ' + (err.message || 'Bilinmiyor'), 'error', 5000);
+          return false;
+        }
+      } catch (e) {
+        showToast('❌ Bağlantı hatası: ' + e.message, 'error', 4000);
+        return false;
+      }
+    }
+
+    // ── GitHub'dan games.json yükle (sayfa açılışında) ────────
+    async function loadRemoteGames() {
+      try {
+        const r = await fetch(GH_FILE + '?v=' + Date.now(), { cache: 'no-cache' });
+        if (r.ok) {
+          const remote = await r.json();
+          if (Array.isArray(remote) && remote.length > 0) {
+            games = remote;
+            renderGames();
+            updateStats();
+            return;
+          }
+        }
+      } catch (_) {}
+      // Fallback: DEFAULT_GAMES + localStorage
+      games = [...DEFAULT_GAMES, ...(JSON.parse(localStorage.getItem('aioyunlab_games')) || [])];
+      renderGames();
+      updateStats();
+    }
+    loadRemoteGames();
+
+    // ── Admin paneline ⚙️ Ayarlar bölümü ekle (JS ile) ───────
+    function injectGHSettings() {
+      const panel = document.getElementById('adminPanel');
+      if (!panel || document.getElementById('gh-settings-section')) return;
+
+      const section = document.createElement('div');
+      section.id = 'gh-settings-section';
+      section.style.cssText = 'margin-top:20px;';
+      section.innerHTML = `
+        <hr style="border-color:rgba(255,255,255,.07);margin-bottom:18px;">
+        <h3 style="color:#a78bfa;font-size:1rem;font-weight:700;display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+          ⚙️ GitHub Bağlantısı
+        </h3>
+        <p style="color:#64748b;font-size:.78rem;margin-bottom:10px;line-height:1.5;">
+          Token gir → oyun ekle/sil → <strong style="color:#22d3ee">~30 saniyede herkes görür</strong>
+        </p>
+        <div style="position:relative;margin-bottom:8px;">
+          <input id="ghTokenInput" type="password"
+            placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+            value="${getGHToken()}"
+            style="width:100%;background:rgba(15,23,42,.9);border:1px solid rgba(167,139,250,.3);
+                   color:#e2e8f0;padding:11px 44px 11px 14px;border-radius:14px;
+                   font-size:.85rem;outline:none;font-family:monospace;">
+          <button onclick="toggleGHTokenVis()" id="ghToggleBtn"
+            style="position:absolute;right:10px;top:50%;transform:translateY(-50%);
+                   background:none;border:none;color:#64748b;cursor:pointer;font-size:1rem;">👁</button>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:6px;">
+          <button onclick="saveGHToken()"
+            style="flex:1;background:linear-gradient(135deg,#7c3aed,#a78bfa);color:#fff;
+                   border:none;padding:10px;border-radius:12px;font-weight:700;cursor:pointer;font-size:.85rem;">
+            💾 Token Kaydet
+          </button>
+          <button onclick="testGHToken()"
+            style="flex:1;background:rgba(30,41,59,.8);color:#94a3b8;border:1px solid rgba(255,255,255,.1);
+                   padding:10px;border-radius:12px;font-weight:600;cursor:pointer;font-size:.85rem;">
+            🔍 Test Et
+          </button>
+        </div>
+        <div id="gh-status" style="font-size:.75rem;color:#64748b;min-height:18px;"></div>
+      `;
+
+      // Çıkış butonunun üstüne ekle
+      const logoutBtn = panel.querySelector('button[onclick="logoutAdmin()"]');
+      if (logoutBtn) logoutBtn.parentNode.insertBefore(section, logoutBtn);
+      else panel.appendChild(section);
+
+      // Token varsa status göster
+      if (getGHToken()) setGHStatus('✅ Token kayıtlı', '#22d3ee');
+    }
+
+    function toggleGHTokenVis() {
+      const inp = document.getElementById('ghTokenInput');
+      inp.type = inp.type === 'password' ? 'text' : 'password';
+    }
+    function setGHStatus(msg, color) {
+      const el = document.getElementById('gh-status');
+      if (el) { el.textContent = msg; el.style.color = color || '#64748b'; }
+    }
+    function saveGHToken() {
+      const val = document.getElementById('ghTokenInput')?.value.trim();
+      if (!val) { setGHStatus('⚠️ Token boş olamaz!', '#f87171'); return; }
+      localStorage.setItem('aio_gh_token', val);
+      setGHStatus('✅ Kaydedildi!', '#34d399');
+    }
+    async function testGHToken() {
+      const token = getGHToken();
+      if (!token) { setGHStatus('⚠️ Önce token gir ve kaydet.', '#f87171'); return; }
+      setGHStatus('⏳ Test ediliyor…', '#94a3b8');
+      try {
+        const r = await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}`, {
+          headers: { 'Authorization': 'token ' + token }
+        });
+        if (r.ok) setGHStatus('✅ Token geçerli! Repo erişimi var.', '#34d399');
+        else       setGHStatus('❌ Token hatalı veya yetersiz yetki.', '#f87171');
+      } catch { setGHStatus('❌ Bağlantı hatası.', '#f87171'); }
+    }
+
+    // Admin paneli açıldığında ayarlar bölümünü enjekte et
+    const _origLogin = loginAdmin;
+    loginAdmin = function() {
+      _origLogin();
+      setTimeout(injectGHSettings, 50);
+    };
+
+    // ── addGameFromAdmin → artık GitHub'a da kaydeder ─────────
+    // (Bir önceki override'ın üstüne wrap)
+    const _addWithToast = addGameFromAdmin;
+    addGameFromAdmin = async function() {
+      const namePre = document.getElementById('gameName').value.trim();
+      const filePre = document.getElementById('gameFile').value.trim();
+      if (!namePre || !filePre) return; // Zaten önceki wrap halleder
+
+      _addWithToast(); // localStorage'a ekler + toast gösterir
+
+      // Tüm oyunları GitHub'a kaydet
+      const allGames = [
+        ...DEFAULT_GAMES,
+        ...(JSON.parse(localStorage.getItem('aioyunlab_games')) || [])
+      ];
+      await saveGamesToGitHub(allGames);
+      updateStats();
     };
 
   </script>
